@@ -1,8 +1,10 @@
 import styled from "@emotion/styled"
-import { TrackEvent } from "@signal-app/core"
-import { FC } from "react"
-import { TickTransform } from "../../entities/transform/TickTransform"
-import { ControlMark, DisplayEvent } from "./ControlMark"
+import type { TrackEvent } from "@signal-app/core"
+import { type FC, useCallback, useMemo } from "react"
+import { useEventView } from "../../hooks/useEventView"
+import { useTickScroll } from "../../hooks/useTickScroll"
+import { Positioned } from "../ui/Positioned"
+import { ControlMark, type DisplayEvent } from "./ControlMark"
 
 /// 重なって表示されないようにひとつのイベントとしてまとめる
 function groupControlEvents(
@@ -35,16 +37,7 @@ function groupControlEvents(
 function isDisplayControlEvent(e: TrackEvent): e is DisplayEvent {
   switch ((e as any).subtype) {
     case "controller":
-      switch ((e as any).controllerType) {
-        case 1: // modulation
-        case 7: // volume
-        case 10: // panpot
-        case 11: // expression
-        case 121: // reset all
-          return false
-        default:
-          return true
-      }
+      return false
     case "programChange":
       return true
     default:
@@ -54,54 +47,47 @@ function isDisplayControlEvent(e: TrackEvent): e is DisplayEvent {
 
 export interface PianoControlEventsProps {
   width: number
-  keyWidth: number
-  events: readonly TrackEvent[]
-  scrollLeft: number
-  transform: TickTransform
-  onDoubleClickMark: (group: DisplayEvent[]) => void
 }
 
 const Container = styled.div`
-  margin-top: var(--size-ruler-height) px;
-  position: absolute;
-
-  .content {
-    position: absolute;
-  }
-  .innter {
-    position: relative;
-  }
+  height: 24px;
+  width: 100%;
+  padding: 0.25rem 0;
+  position: relative;
 `
 
-const PianoControlEvents: FC<PianoControlEventsProps> = ({
-  width,
-  keyWidth,
-  events,
-  scrollLeft,
-  transform,
-  onDoubleClickMark,
-}) => {
+export const PianoControlEvents: FC<PianoControlEventsProps> = ({ width }) => {
+  const events = useEventView()
+  const { scrollLeft, transform } = useTickScroll()
+
   const eventGroups = groupControlEvents(
     events.filter(isDisplayControlEvent),
     120,
   )
 
+  const onDoubleClickMark = useCallback((_group: DisplayEvent[]) => {
+    // TODO
+  }, [])
+
+  const style = useMemo(
+    () => ({
+      width,
+    }),
+    [width],
+  )
+
   return (
-    <Container style={{ width, marginLeft: keyWidth }}>
-      <div className="inner">
-        <div className="content" style={{ left: -scrollLeft }}>
-          {eventGroups.map((g, i) => (
-            <ControlMark
-              key={i}
-              group={g}
-              transform={transform}
-              onDoubleClick={() => onDoubleClickMark(g)}
-            />
-          ))}
-        </div>
-      </div>
+    <Container style={style}>
+      <Positioned left={-scrollLeft}>
+        {eventGroups.map((g) => (
+          <ControlMark
+            key={g.map((e) => e.id).join("-")}
+            group={g}
+            transform={transform}
+            onDoubleClick={() => onDoubleClickMark(g)}
+          />
+        ))}
+      </Positioned>
     </Container>
   )
 }
-
-export default PianoControlEvents
