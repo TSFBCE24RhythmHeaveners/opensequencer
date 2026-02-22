@@ -28,6 +28,8 @@ const Container = styled.div`
 
   &:hover {
     opacity: 1;
+    max-width: none;
+    overflow: visible;
   }
 `
 
