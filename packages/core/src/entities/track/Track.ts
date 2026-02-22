@@ -11,7 +11,7 @@ import {
   getTrackNameEvent,
   getVolume,
 } from "./selector"
-import { SignalInputChannelEvent, SignalTrackColorEvent } from "./signalEvents"
+import { SignalTrackColorEvent } from "./signalEvents"
 import { TrackColor } from "./TrackColor"
 import { TrackEvent } from "./TrackEvent"
 import { TrackEvents } from "./TrackEvents"
@@ -131,14 +131,6 @@ export class Track {
 
   setColor(color: TrackColor | null) {
     TrackEvents.setColor(color)(this._events)
-  }
-
-  get inputChannel(): SignalInputChannelEvent | undefined {
-    return TrackEvents.getInputChannelEvent(this.events)
-  }
-
-  setInputChannel(value: number | null) {
-    TrackEvents.setInputChannel(value)(this._events)
   }
 
   getProgramNumber = (tick: number) =>

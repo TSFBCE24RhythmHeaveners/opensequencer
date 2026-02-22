@@ -18,7 +18,6 @@ const signalEventPrefix = "Sign".split("").map((c) => c.charCodeAt(0))
 enum SignalEventType {
   preserved = 0,
   trackColor = 1,
-  inputChannel = 2,
 }
 
 type SignalEvent<T extends string> = TrackEventOf<{
@@ -29,11 +28,7 @@ type SignalEvent<T extends string> = TrackEventOf<{
 
 export type SignalTrackColorEvent = SignalEvent<"trackColor"> & TrackColor
 
-export type SignalInputChannelEvent = SignalEvent<"inputChannel"> & {
-  value: number
-}
-
-export type AnySignalEvent = SignalTrackColorEvent | SignalInputChannelEvent
+export type AnySignalEvent = SignalTrackColorEvent
 
 // extract the value type of SignalEvent
 type SignalEventValueOf<T extends AnySignalEvent> = Omit<
@@ -131,17 +126,6 @@ const trackColorEventConverter = createConverter<SignalTrackColorEvent>(
 export const isSignalTrackColorEvent = trackColorEventConverter.identify
 export const createSignalTrackColorEvent = trackColorEventConverter.create
 
-// 'S' 'i' 'g' 'n' 0x02 <Value>
-const inputChannelEventConverter = createConverter<SignalInputChannelEvent>(
-  "inputChannel",
-  1,
-  (data) => ({ value: data[0] }),
-  (e) => [e.value],
-)
-
-export const isSignalInputChannelEvent = inputChannelEventConverter.identify
-export const createSignalInputChannelEvent = inputChannelEventConverter.create
-
 // MARK: - Mapping
 
 export const mapToSignalEvent = (
@@ -154,8 +138,6 @@ export const mapToSignalEvent = (
   switch (e.data[4]) {
     case SignalEventType.trackColor:
       return trackColorEventConverter.fromSequencerSpecificEvent(e) ?? e
-    case SignalEventType.inputChannel:
-      return inputChannelEventConverter.fromSequencerSpecificEvent(e) ?? e
     default:
       return e
   }
@@ -167,7 +149,5 @@ export const mapFromSignalEvent = (
   switch (e.signalEventType) {
     case "trackColor":
       return trackColorEventConverter.toSequencerSpecificEvent(e)
-    case "inputChannel":
-      return inputChannelEventConverter.toSequencerSpecificEvent(e)
   }
 }

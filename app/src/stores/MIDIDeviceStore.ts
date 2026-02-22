@@ -9,6 +9,7 @@ export class MIDIDeviceStore {
   enabledOutputs: { [deviceId: string]: boolean } = {}
   enabledInputs: { [deviceId: string]: boolean } = {}
   isFactorySoundEnabled = true
+  midiInputRouting: "selectedTrack" | "channelRouting" = "selectedTrack"
 
   constructor() {
     makeObservable(this, {
@@ -19,13 +20,20 @@ export class MIDIDeviceStore {
       enabledOutputs: observable,
       enabledInputs: observable,
       isFactorySoundEnabled: observable,
+      midiInputRouting: observable,
       setInputEnable: action,
       setOutputEnable: action,
+      setMidiInputRouting: action,
     })
 
     makePersistable(this, {
       name: "MIDIDeviceStore",
-      properties: ["isFactorySoundEnabled", "enabledOutputs", "enabledInputs"],
+      properties: [
+        "isFactorySoundEnabled",
+        "enabledOutputs",
+        "enabledInputs",
+        "midiInputRouting",
+      ],
       storage: window.localStorage,
     })
 
@@ -78,5 +86,9 @@ export class MIDIDeviceStore {
       ...this.enabledOutputs,
       [deviceId]: enabled,
     }
+  }
+
+  setMidiInputRouting = (routing: "selectedTrack" | "channelRouting") => {
+    this.midiInputRouting = routing
   }
 }

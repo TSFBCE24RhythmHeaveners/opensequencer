@@ -1,9 +1,5 @@
 import { isEqual, omit } from "lodash"
-import {
-  ControllerEvent,
-  SetTempoEvent,
-  TrackNameEvent,
-} from "midifile-ts"
+import { ControllerEvent, SetTempoEvent, TrackNameEvent } from "midifile-ts"
 import { transaction } from "mobx"
 import { TickOrderedArray } from "../../data/OrdererdArray/TickOrderedArray"
 import { bpmToUSecPerBeat } from "../../helpers/bpm"
@@ -15,12 +11,7 @@ import {
   getTrackNameEvent,
   isTickBefore,
 } from "./selector"
-import {
-  isSignalInputChannelEvent,
-  isSignalTrackColorEvent,
-  SignalInputChannelEvent,
-  SignalTrackColorEvent,
-} from "./signalEvents"
+import { isSignalTrackColorEvent, SignalTrackColorEvent } from "./signalEvents"
 import { TrackColor } from "./TrackColor"
 import { TrackEvent, TrackEventOf } from "./TrackEvent"
 import { validateMidiEvent } from "./validate"
@@ -177,34 +168,6 @@ export namespace TrackEvents {
   ): SignalTrackColorEvent | undefined => {
     return events.filter(isSignalTrackColorEvent)[0]
   }
-
-  export const getInputChannelEvent = (
-    events: readonly TrackEvent[],
-  ): SignalInputChannelEvent | undefined => {
-    return events.filter(isSignalInputChannelEvent)[0]
-  }
-
-  export const setInputChannel =
-    (value: number | null) => (events: TickOrderedArray<TrackEvent>) => {
-      const e = getInputChannelEvent(events.getArray())
-      if (value === null) {
-        if (e !== undefined) {
-          events.remove(e.id)
-        }
-        return
-      }
-      if (e !== undefined) {
-        updateEvent<SignalInputChannelEvent>(e.id, { value })(events)
-      } else {
-        addEvent<SignalInputChannelEvent>({
-          tick: 0,
-          type: "channel",
-          subtype: "signal",
-          signalEventType: "inputChannel",
-          value,
-        })(events)
-      }
-    }
 
   export const setColor =
     (color: TrackColor | null) => (events: TickOrderedArray<TrackEvent>) => {

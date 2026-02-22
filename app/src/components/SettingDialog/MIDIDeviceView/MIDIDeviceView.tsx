@@ -7,6 +7,7 @@ import { Alert } from "../../ui/Alert"
 import { Checkbox } from "../../ui/Checkbox"
 import { CircularProgress } from "../../ui/CircularProgress"
 import { Label } from "../../ui/Label"
+import { RadioButton } from "../../ui/RadioButton"
 
 interface ListItem {
   device: Device
@@ -58,8 +59,10 @@ export const MIDIDeviceView: FC = () => {
     outputDevices,
     isLoading,
     requestError,
+    midiInputRouting,
     setInputEnable,
     setOutputEnable,
+    setMidiInputRouting,
   } = useMIDIDevice()
 
   return (
@@ -94,6 +97,25 @@ export const MIDIDeviceView: FC = () => {
                 />
               ))}
             </DeviceList>
+            <SectionTitle>
+              <Localized name="midi-routing" />
+            </SectionTitle>
+            <RadioButton
+              label={<Localized name="midi-routing-selected-track" />}
+              description={
+                <Localized name="midi-routing-selected-track-description" />
+              }
+              isSelected={midiInputRouting === "selectedTrack"}
+              onClick={() => setMidiInputRouting("selectedTrack")}
+            />
+            <RadioButton
+              label={<Localized name="midi-routing-channel" />}
+              description={
+                <Localized name="midi-routing-channel-description" />
+              }
+              isSelected={midiInputRouting === "channelRouting"}
+              onClick={() => setMidiInputRouting("channelRouting")}
+            />
             {
               <>
                 <Spacer />

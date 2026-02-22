@@ -2,22 +2,27 @@ import {
   NoteEvent,
   TrackEvent,
   TrackId,
+  UNASSIGNED_TRACK_ID,
 } from "@signal-app/core"
 import { Player } from "@signal-app/player"
 import { deserializeSingleEvent, Stream } from "midifile-ts"
 import { makeObservable, observable, observe } from "mobx"
+import { MIDIDeviceStore } from "../stores/MIDIDeviceStore"
 import { SongStore } from "../stores/SongStore"
 
 export class MIDIRecorder {
   private recordedNotes: { [key: TrackId]: NoteEvent[] } = {}
   isRecording: boolean = false
+  trackId: TrackId = UNASSIGNED_TRACK_ID
 
   constructor(
     private readonly songStore: SongStore,
     private readonly player: Player,
+    private readonly midiDeviceStore: MIDIDeviceStore,
   ) {
     makeObservable(this, {
       isRecording: observable,
+      trackId: observable,
     })
 
     // extend duration while key press
@@ -70,13 +75,18 @@ export class MIDIRecorder {
 
     const tick = Math.floor(this.player.position)
 
-    // route to tracks by input channel
-    const tracks = this.songStore.song.tracks.filter(
-      (t) =>
-        !t.isConductorTrack &&
-        (t.inputChannel === undefined ||
-          t.inputChannel.value === message.channel),
-    )
+    const routing = this.midiDeviceStore.midiInputRouting
+
+    let tracks
+    if (routing === "channelRouting") {
+      tracks = this.songStore.song.tracks.filter(
+        (t) => !t.isConductorTrack && t.channel === message.channel,
+      )
+    } else {
+      // selectedTrack mode
+      const track = this.songStore.song.getTrack(this.trackId)
+      tracks = track !== undefined ? [track] : []
+    }
 
     switch (message.subtype) {
       case "noteOn": {

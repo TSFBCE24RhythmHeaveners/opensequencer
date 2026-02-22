@@ -39,9 +39,6 @@ export function useTrack(id: TrackId) {
     get color() {
       return useMobxGetter(track, "color")
     },
-    get inputChannel() {
-      return useMobxGetter(track, "inputChannel")
-    },
     get isMuted() {
       const { trackMute } = useTrackMute()
       const isMuted = TrackMute.isMuted(id)(trackMute)
@@ -55,12 +52,6 @@ export function useTrack(id: TrackId) {
     setColor: useCallback(
       (color: TrackColor | null) => {
         track?.setColor(color)
-      },
-      [track],
-    ),
-    setInputChannel: useCallback(
-      (value: number | null) => {
-        track?.setInputChannel(value)
       },
       [track],
     ),

@@ -186,10 +186,7 @@ export const InstrumentBrowser: FC<InstrumentBrowserProps> = ({
       </DialogContent>
       <DialogActions>
         {targetEventId !== undefined && (
-          <Button
-            onClick={handleClickDelete}
-            style={{ marginRight: "auto" }}
-          >
+          <Button onClick={handleClickDelete} style={{ marginRight: "auto" }}>
             <Localized name="delete" />
           </Button>
         )}

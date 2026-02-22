@@ -47,42 +47,14 @@ const ChannelSelect: FC<{
   )
 }
 
-const MIDIInputSelect: FC<{
-  channel: number | null
-  onChange: (channel: number | null) => void
-}> = ({ channel, onChange }) => {
-  return (
-    <Select
-      value={channel ?? -1}
-      onChange={(e) => {
-        const value = parseInt(e.target.value as string)
-        onChange(value === -1 ? null : value)
-      }}
-    >
-      <option key={-1} value={-1}>
-        <Localized name="midi-input-all" />
-      </option>
-      {range(0, 16).map((v) => (
-        <option key={v} value={v.toString()}>
-          {v + 1}
-        </option>
-      ))}
-    </Select>
-  )
-}
-
 export const TrackDialog: FC<TrackDialogProps> = ({
   trackId,
   open,
   onClose,
 }) => {
-  const { name, channel, inputChannel, setName, setChannel, setInputChannel } =
-    useTrack(trackId)
+  const { name, channel, setName, setChannel } = useTrack(trackId)
   const [_name, _setName] = useState(name)
   const [_channel, _setChannel] = useState(channel)
-  const [_midiInputChannel, _setMIDIInputChannel] = useState(
-    inputChannel?.value ?? null,
-  )
 
   useEffect(() => {
     if (!open) {
@@ -90,7 +62,6 @@ export const TrackDialog: FC<TrackDialogProps> = ({
     }
     _setName(name)
     _setChannel(channel)
-    _setMIDIInputChannel(inputChannel?.value ?? null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackId, open])
 
@@ -115,13 +86,6 @@ export const TrackDialog: FC<TrackDialogProps> = ({
           <Localized name="channel" />
           <ChannelSelect channel={_channel} onChange={_setChannel} />
         </Label>
-        <Label>
-          <Localized name="midi-input" />
-          <MIDIInputSelect
-            channel={_midiInputChannel}
-            onChange={_setMIDIInputChannel}
-          />
-        </Label>
       </DialogContent>
       <DialogActions>
         <Button autoFocus onClick={onClose}>
@@ -131,7 +95,6 @@ export const TrackDialog: FC<TrackDialogProps> = ({
           onClick={() => {
             setName(_name ?? "")
             setChannel(_channel)
-            setInputChannel(_midiInputChannel)
             onClose()
           }}
         >
