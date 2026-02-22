@@ -30,7 +30,7 @@ describe("Song", () => {
     expect(tracks[0].getTempo(240)).toBe(128)
     expect(tracks[2].getVolume(193)).toBe(100)
     expect(tracks[2].getPan(192)).toBe(1)
-    expect(tracks[2].programNumber).toBe(29)
+    expect(tracks[2].getProgramNumber(189)).toBe(29)
   })
 
   it("should be serializable", () => {
