@@ -15,7 +15,7 @@ export const StyledInput = styled.input`
   color: inherit;
   -webkit-appearance: none;
   font-size: inherit;
-  font-family: ${({ theme }) => theme.monoFont};
+  font-family: var(--font-mono);
   outline: none;
 
   /* Hide spin button on Firefox */
@@ -37,7 +37,7 @@ export const EventListInput: FC<EventListInputProps> = ({
 
   const sendChange = useCallback(() => {
     onChange(inputValue)
-  }, [inputValue])
+  }, [inputValue, onChange])
 
   const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = useCallback(
     (e) => {
@@ -63,7 +63,7 @@ export const EventListInput: FC<EventListInputProps> = ({
         sendChange()
       }
     },
-    [sendChange, value],
+    [sendChange],
   )
 
   return (

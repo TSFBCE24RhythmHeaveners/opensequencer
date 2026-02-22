@@ -1,111 +1,115 @@
 import { useTheme } from "@emotion/react"
 import { GLCanvas, Transform } from "@ryohey/webgl-react"
-import { observer } from "mobx-react-lite"
-import {
-  FC,
-  MouseEventHandler,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"
+import { FC, MouseEventHandler, useCallback, useEffect, useMemo } from "react"
 import { matrixFromTranslation } from "../../../helpers/matrix"
+import { useBeats } from "../../../hooks/useBeats"
 import { useContextMenu } from "../../../hooks/useContextMenu"
-import { useStores } from "../../../hooks/useStores"
+import { useKeyScroll } from "../../../hooks/useKeyScroll"
+import { usePianoRoll } from "../../../hooks/usePianoRoll"
+import { useTickScroll } from "../../../hooks/useTickScroll"
 import { Beats } from "../../GLNodes/Beats"
 import { Cursor } from "../../GLNodes/Cursor"
-import { Selection } from "../../GLNodes/Selection"
-import NoteMouseHandler from "../MouseHandler/NoteMouseHandler"
-import { PianoRollStageProps } from "../PianoRollStage"
+import { useNoteMouseGesture } from "../MouseHandler/useNoteMouseGesture"
 import { PianoSelectionContextMenu } from "../PianoSelectionContextMenu"
 import { GhostNotes } from "./GhostNotes"
 import { Lines } from "./Lines"
 import { Notes } from "./Notes"
+import { NoteSelection } from "./NoteSelection"
 
-export const PianoRollCanvas: FC<PianoRollStageProps> = observer(
-  ({ width, height }) => {
-    const rootStore = useStores()
-    const {
-      pianoRollStore,
-      pianoRollStore: {
-        notesCursor,
-        scrollLeft,
-        scrollTop,
-        rulerStore: { beats },
-        cursorX,
-        selectionBounds,
-        ghostTrackIds,
-      },
-    } = rootStore
+export interface PianoRollCanvasProps {
+  width: number
+  height: number
+}
 
-    const [mouseHandler] = useState(new NoteMouseHandler(rootStore))
+export const PianoRollCanvas: FC<PianoRollCanvasProps> = ({
+  width,
+  height,
+}) => {
+  const { ghostTrackIds, mouseMode } = usePianoRoll()
+  const beats = useBeats()
+  const { cursorX, setCanvasWidth, scrollLeft } = useTickScroll()
+  const { scrollTop, setCanvasHeight } = useKeyScroll()
 
-    const { onContextMenu, menuProps } = useContextMenu()
+  const mouseHandler = useNoteMouseGesture()
 
-    const theme = useTheme()
+  const { onContextMenu, menuProps } = useContextMenu()
 
-    const handleContextMenu: MouseEventHandler = useCallback((e) => {
-      if (pianoRollStore.mouseMode === "selection") {
+  const theme = useTheme()
+
+  const handleContextMenu: MouseEventHandler = useCallback(
+    (e) => {
+      // Ctrl + Click is used to copy the selected notes
+      if (e.ctrlKey) {
+        return
+      }
+
+      if (mouseMode === "selection") {
         e.stopPropagation()
         onContextMenu(e)
         return
       }
-    }, [])
+    },
+    [mouseMode, onContextMenu],
+  )
 
-    useEffect(() => {
-      pianoRollStore.canvasWidth = width
-    }, [width])
+  useEffect(() => {
+    setCanvasWidth(width)
+  }, [width, setCanvasWidth])
 
-    useEffect(() => {
-      pianoRollStore.canvasHeight = height
-    }, [height])
+  useEffect(() => {
+    setCanvasHeight(height)
+  }, [height, setCanvasHeight])
 
-    const scrollXMatrix = useMemo(
-      () => matrixFromTranslation(-scrollLeft, 0),
-      [scrollLeft],
-    )
+  const scrollXMatrix = useMemo(
+    () => matrixFromTranslation(-scrollLeft, 0),
+    [scrollLeft],
+  )
 
-    const scrollYMatrix = useMemo(
-      () => matrixFromTranslation(0, -scrollTop),
-      [scrollLeft, scrollTop],
-    )
+  const scrollYMatrix = useMemo(
+    () => matrixFromTranslation(0, -scrollTop),
+    [scrollTop],
+  )
 
-    const scrollXYMatrix = useMemo(
-      () => matrixFromTranslation(-scrollLeft, -scrollTop),
-      [scrollLeft, scrollTop],
-    )
+  const scrollXYMatrix = useMemo(
+    () => matrixFromTranslation(-scrollLeft, -scrollTop),
+    [scrollLeft, scrollTop],
+  )
 
-    return (
-      <>
-        <GLCanvas
-          width={width}
-          height={height}
-          style={{
-            cursor: notesCursor,
-            background: theme.pianoWhiteKeyLaneColor,
-          }}
-          onContextMenu={handleContextMenu}
-          onMouseDown={mouseHandler.onMouseDown}
-          onMouseMove={mouseHandler.onMouseMove}
-          onMouseUp={mouseHandler.onMouseUp}
-        >
-          <Transform matrix={scrollYMatrix}>
-            <Lines zIndex={0} />
-          </Transform>
-          <Transform matrix={scrollXMatrix}>
-            <Beats height={height} beats={beats} zIndex={1} />
-            <Cursor x={cursorX} height={height} zIndex={5} />
-          </Transform>
-          <Transform matrix={scrollXYMatrix}>
-            {ghostTrackIds.map((trackId) => (
-              <GhostNotes key={trackId} trackId={trackId} zIndex={2} />
-            ))}
-            <Notes zIndex={3} />
-            <Selection rect={selectionBounds} zIndex={4} />
-          </Transform>
-        </GLCanvas>
-        <PianoSelectionContextMenu {...menuProps} />
-      </>
-    )
-  },
-)
+  const style = useMemo(
+    () => ({
+      backgroundColor: theme.editorBackgroundColor,
+    }),
+    [theme],
+  )
+
+  return (
+    <>
+      <GLCanvas
+        width={width}
+        height={height}
+        cursor={mouseMode === "pencil" ? "auto" : "crosshair"}
+        style={style}
+        onContextMenu={handleContextMenu}
+        onMouseDown={mouseHandler.onMouseDown}
+        onMouseMove={mouseHandler.onMouseMove}
+        onMouseUp={mouseHandler.onMouseUp}
+      >
+        <Transform matrix={scrollYMatrix}>
+          <Lines zIndex={0} />
+        </Transform>
+        <Transform matrix={scrollXMatrix}>
+          <Beats height={height} beats={beats} zIndex={1} />
+          <Cursor x={cursorX} height={height} zIndex={5} />
+        </Transform>
+        <Transform matrix={scrollXYMatrix}>
+          {ghostTrackIds.map((trackId) => (
+            <GhostNotes key={trackId} trackId={trackId} zIndex={2} />
+          ))}
+          <Notes zIndex={3} />
+          <NoteSelection zIndex={4} />
+        </Transform>
+      </GLCanvas>
+      <PianoSelectionContextMenu {...menuProps} />
+    </>
+  )
+}

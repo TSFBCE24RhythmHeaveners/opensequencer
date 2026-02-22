@@ -1,8 +1,8 @@
 import styled from "@emotion/styled"
 import { DialogTitle } from "@radix-ui/react-dialog"
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useAuth } from "../../hooks/useAuth"
+import { useRootView } from "../../hooks/useRootView"
 import { Localized } from "../../localize/useLocalization"
 import { Dialog, DialogActions, DialogContent } from "../Dialog/Dialog"
 import { Button } from "../ui/Button"
@@ -11,7 +11,7 @@ const UserIcon = styled.img`
   width: 3rem;
   height: 3rem;
   border-radius: 1.5rem;
-  border: 2px solid ${({ theme }) => theme.dividerColor};
+  border: 2px solid var(--color-divider);
   box-sizing: border-box;
 `
 
@@ -21,10 +21,8 @@ const UserCardWrapper = styled.div`
   gap: 1rem;
 `
 
-const UserCard = observer(() => {
-  const {
-    authStore: { authUser: user },
-  } = useStores()
+const UserCard = () => {
+  const { authUser: user } = useAuth()
 
   if (user === null) {
     return <></>
@@ -36,7 +34,7 @@ const UserCard = observer(() => {
       <p>{user.displayName}</p>
     </UserCardWrapper>
   )
-})
+}
 
 const Content = styled.div`
   display: flex;
@@ -45,35 +43,34 @@ const Content = styled.div`
 `
 
 const DeleteButton = styled(Button)`
-  color: ${({ theme }) => theme.redColor};
+  color: var(--color-red);
 `
 
-export const UserSettingsDialog: FC = observer(() => {
+export const UserSettingsDialog: FC = () => {
   const {
-    rootViewStore,
-    authStore: { authUser: user },
-  } = useStores()
+    openUserSettingsDialog,
+    setOpenUserSettingsDialog,
+    setOpenDeleteAccountDialog,
+  } = useRootView()
+  const { authUser: user } = useAuth()
 
   const onClickCancel = () => {
-    rootViewStore.openUserSettingsDialog = false
+    setOpenUserSettingsDialog(false)
   }
 
   const onClickDelete = async () => {
-    rootViewStore.openUserSettingsDialog = false
-    rootViewStore.openDeleteAccountDialog = true
+    setOpenUserSettingsDialog(false)
+    setOpenDeleteAccountDialog(true)
   }
 
   const onClickProfile = () => {
     if (user !== null) {
-      window.open(`https://signal.vercel.app/users/${user.uid}`)
+      window.open(`https://signalmidi.app/users/${user.uid}`)
     }
   }
 
   return (
-    <Dialog
-      open={rootViewStore.openUserSettingsDialog}
-      style={{ minWidth: "30rem" }}
-    >
+    <Dialog open={openUserSettingsDialog} style={{ minWidth: "30rem" }}>
       <DialogTitle>
         <Localized name="user-settings" />
       </DialogTitle>
@@ -95,4 +92,4 @@ export const UserSettingsDialog: FC = observer(() => {
       </DialogActions>
     </Dialog>
   )
-})
+}

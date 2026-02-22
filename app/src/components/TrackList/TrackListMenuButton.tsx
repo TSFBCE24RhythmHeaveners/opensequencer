@@ -1,8 +1,7 @@
 import styled from "@emotion/styled"
 import ArrowLeft from "mdi-react/MenuLeftIcon"
-import { observer } from "mobx-react-lite"
 import { FC, useCallback, useRef } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useTrackList } from "../../hooks/useTrackList"
 
 const NavBackButton = styled.button`
   -webkit-appearance: none;
@@ -15,7 +14,7 @@ const NavBackButton = styled.button`
 
   &:hover {
     background: none;
-    color: ${({ theme }) => theme.secondaryTextColor};
+    color: var(--color-text-secondary);
   }
 `
 
@@ -32,14 +31,9 @@ const ArrowIcon: FC<ArrowIconProps> = ({ isOpen }) => (
   />
 )
 
-export const TrackListMenuButton: FC = observer(() => {
-  const { pianoRollStore } = useStores()
-  const open = pianoRollStore.showTrackList
-  const onClickNavBack = useCallback(
-    () => (pianoRollStore.showTrackList = !pianoRollStore.showTrackList),
-    [pianoRollStore],
-  )
-
+export const TrackListMenuButton: FC = () => {
+  const { isOpen, setOpen } = useTrackList()
+  const onClickNavBack = useCallback(() => setOpen((prev) => !prev), [setOpen])
   const ref = useRef<HTMLButtonElement>(null)
 
   return (
@@ -52,8 +46,8 @@ export const TrackListMenuButton: FC = observer(() => {
           onClickNavBack()
         }}
       >
-        <ArrowIcon isOpen={open} />
+        <ArrowIcon isOpen={isOpen} />
       </NavBackButton>
     </>
   )
-})
+}

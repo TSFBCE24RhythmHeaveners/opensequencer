@@ -1,13 +1,22 @@
 import { keyframes } from "@emotion/react"
 import styled from "@emotion/styled"
+import { composeEventHandlers } from "@radix-ui/primitive"
 import {
   Content,
-  DialogProps as Props,
+  DialogOverlay,
+  DialogPortal,
   Overlay,
   Portal,
+  DialogProps as Props,
   Root,
 } from "@radix-ui/react-dialog"
-import { FC } from "react"
+import {
+  ComponentPropsWithoutRef,
+  ElementRef,
+  FC,
+  forwardRef,
+  useRef,
+} from "react"
 
 const overlayShow = keyframes`
   from {
@@ -36,10 +45,36 @@ const StyledOverlay = styled(Overlay)`
   animation: ${overlayShow} 150ms cubic-bezier(0.16, 1, 0.3, 1);
 `
 
-const StyledContent = styled(Content)`
-  background-color: ${({ theme }) => theme.backgroundColor};
+// https://github.com/radix-ui/primitives/discussions/3319#discussioncomment-11844283
+const FocusFixedDialogContent = forwardRef<
+  ElementRef<typeof Content>,
+  ComponentPropsWithoutRef<typeof Content>
+>(({ ...props }, ref) => {
+  const previousActiveElement = useRef<HTMLElement | null>(null)
+
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <Content
+        onOpenAutoFocus={composeEventHandlers(props.onOpenAutoFocus, () => {
+          previousActiveElement.current = document.activeElement as HTMLElement
+        })}
+        onCloseAutoFocus={composeEventHandlers(props.onCloseAutoFocus, () => {
+          // Return focus to the previously active element
+          // Radix will immediately follow this callback and attempt to focus the DialogTrigger if it's provided
+          previousActiveElement.current?.focus()
+        })}
+        ref={ref}
+        {...props}
+      />
+    </DialogPortal>
+  )
+})
+
+const StyledContent = styled(FocusFixedDialogContent)`
+  background-color: var(--color-background);
   border-radius: 0.5rem;
-  box-shadow: 0 0.5rem 3rem ${({ theme }) => theme.shadowColor};
+  box-shadow: 0 0.5rem 3rem var(--color-shadow);
   position: fixed;
   top: 50%;
   left: 50%;
@@ -74,7 +109,7 @@ export const Dialog: FC<DialogProps> = ({ children, style, ...props }) => (
 
 export const DialogTitle = styled.div`
   font-size: 1.25rem;
-  color: ${({ theme }) => theme.textColor};
+  color: var(--color-text);
   margin-bottom: 1.5rem;
 `
 

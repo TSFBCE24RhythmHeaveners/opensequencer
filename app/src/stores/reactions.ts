@@ -1,12 +1,8 @@
-import { autorun, observe } from "mobx"
-import { resetSelection } from "../actions"
+import { autorun, observe, reaction } from "mobx"
 import MIDIOutput from "../services/MIDIOutput"
 import RootStore from "./RootStore"
 
 export const registerReactions = (rootStore: RootStore) => {
-  // reset selection when tool changed
-  observe(rootStore.pianoRollStore, "mouseMode", resetSelection(rootStore))
-
   observe(
     rootStore.midiDeviceStore,
     "enabledOutputs",
@@ -23,6 +19,16 @@ export const registerReactions = (rootStore: RootStore) => {
   )
 
   observe(rootStore.player, "isPlaying", stopRecordingWhenStopPlayer(rootStore))
+
+  // Watch for song changes and set the auto-save flag
+  reaction(
+    () => rootStore.songStore.song.isSaved,
+    (isSaved) => {
+      if (!isSaved) {
+        rootStore.autoSaveService.onSongChanged()
+      }
+    },
+  )
 }
 
 type Reaction = (rootStore: RootStore) => () => void

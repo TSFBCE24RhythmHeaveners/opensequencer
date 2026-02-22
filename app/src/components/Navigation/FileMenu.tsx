@@ -1,12 +1,12 @@
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
+import { useSong } from "../../hooks/useSong"
 import { useSongFile } from "../../hooks/useSongFile"
-import { useStores } from "../../hooks/useStores"
+import { envString } from "../../localize/envString"
 import { Localized } from "../../localize/useLocalization"
-import { MenuDivider, MenuItem } from "../ui/Menu"
+import { MenuHotKey as HotKey, MenuDivider, MenuItem } from "../ui/Menu"
 
-export const FileMenu: FC<{ close: () => void }> = observer(({ close }) => {
-  const rootStore = useStores()
+export const FileMenu: FC<{ close: () => void }> = ({ close }) => {
+  const { fileHandle } = useSong()
   const { createNewSong, openSong, saveSong, saveAsSong, downloadSong } =
     useSongFile()
 
@@ -39,23 +39,24 @@ export const FileMenu: FC<{ close: () => void }> = observer(({ close }) => {
     <>
       <MenuItem onClick={onClickNew}>
         <Localized name="new-song" />
+        <HotKey>{envString.altOrOption}+N</HotKey>
       </MenuItem>
 
       <MenuDivider />
 
       <MenuItem onClick={onClickOpen}>
         <Localized name="open-song" />
+        <HotKey>{envString.cmdOrCtrl}+O</HotKey>
       </MenuItem>
 
-      <MenuItem
-        onClick={onClickSave}
-        disabled={rootStore.song.fileHandle === null}
-      >
+      <MenuItem onClick={onClickSave} disabled={fileHandle === null}>
         <Localized name="save-song" />
+        <HotKey>{envString.cmdOrCtrl}+S</HotKey>
       </MenuItem>
 
       <MenuItem onClick={onClickSaveAs}>
         <Localized name="save-as" />
+        <HotKey>{envString.cmdOrCtrl}+Shift+S</HotKey>
       </MenuItem>
 
       <MenuItem onClick={onClickDownload}>
@@ -63,4 +64,4 @@ export const FileMenu: FC<{ close: () => void }> = observer(({ close }) => {
       </MenuItem>
     </>
   )
-})
+}

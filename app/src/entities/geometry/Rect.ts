@@ -1,8 +1,8 @@
 import { Point } from "./Point"
 
 export interface Rect extends Point {
-  width: number
-  height: number
+  readonly width: number
+  readonly height: number
 }
 
 export namespace Rect {
@@ -56,6 +56,15 @@ export namespace Rect {
       y: y1,
       width: x2 - x1,
       height: y2 - y1,
+    }
+  }
+
+  export function fromPointWithSize(point: Point, size: number): Rect {
+    return {
+      x: point.x - size / 2,
+      y: point.y - size / 2,
+      width: size,
+      height: size,
     }
   }
 

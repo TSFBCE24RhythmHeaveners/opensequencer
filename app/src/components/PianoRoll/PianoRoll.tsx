@@ -1,11 +1,14 @@
 import styled from "@emotion/styled"
 import useComponentSize from "@rehooks/component-size"
 import { clamp } from "lodash"
-import { observer } from "mobx-react-lite"
-import { FC, useCallback, useRef } from "react"
+import { FC, useCallback, useEffect, useRef } from "react"
 import { Layout, WHEEL_SCROLL_RATE } from "../../Constants"
 import { isTouchPadEvent } from "../../helpers/touchpad"
-import { useStores } from "../../hooks/useStores"
+import { useKeyScroll } from "../../hooks/useKeyScroll"
+import { usePianoNotesKeyboardShortcut } from "../../hooks/usePianoNotesKeyboardShortcut"
+import { usePianoRoll } from "../../hooks/usePianoRoll"
+import { useTickScroll } from "../../hooks/useTickScroll"
+import { useTrack } from "../../hooks/useTrack"
 import ControlPane from "../ControlPane/ControlPane"
 import {
   HorizontalScaleScrollBar,
@@ -16,65 +19,72 @@ import { StyledSplitPane } from "./StyledSplitPane"
 
 const Parent = styled.div`
   flex-grow: 1;
-  background: ${({ theme }) => theme.backgroundColor};
+  background: var(--color-background);
   position: relative;
 `
 
 const Alpha = styled.div`
   flex-grow: 1;
   position: relative;
-
-  .alphaContent {
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
+  outline: none;
 `
 
 const Beta = styled.div`
-  border-top: 1px solid ${({ theme }) => theme.dividerColor};
+  border-top: 1px solid var(--color-divider);
   height: calc(100% - 17px);
 `
 
-const PianoRollWrapper: FC = observer(() => {
+const PianoRollWrapper: FC = () => {
+  const { transform, scrollBy, selectedTrackId, setActivePane } = usePianoRoll()
+  const { isRhythmTrack } = useTrack(selectedTrackId)
   const {
-    pianoRollStore: s,
-    pianoRollStore: {
-      scaleX,
-      scaleY,
-      scrollLeft,
-      scrollTop,
-      transform,
-      contentWidth,
-      contentHeight,
-    },
-  } = useStores()
+    contentHeight,
+    scrollTop,
+    scaleAroundPointY,
+    setScrollTopInPixels,
+    setScaleY,
+  } = useKeyScroll()
+  const {
+    scrollLeft,
+    contentWidth,
+    scaleAroundPointX,
+    setAutoScroll,
+    setScrollLeftInPixels,
+    setScaleX,
+  } = useTickScroll()
+  const keyboardShortcutProps = usePianoNotesKeyboardShortcut()
 
   const ref = useRef(null)
   const size = useComponentSize(ref)
 
   const alphaRef = useRef(null)
   const { height: alphaHeight = 0 } = useComponentSize(alphaRef)
+  const keyWidth = isRhythmTrack
+    ? Layout.keyWidth + Layout.drumKeysWidth
+    : Layout.keyWidth
 
   const onClickScaleUpHorizontal = useCallback(
-    () => s.scaleAroundPointX(0.2, Layout.keyWidth),
-    [scaleX, s],
+    () => scaleAroundPointX(0.2, 0),
+    [scaleAroundPointX],
   )
   const onClickScaleDownHorizontal = useCallback(
-    () => s.scaleAroundPointX(-0.2, Layout.keyWidth),
-    [scaleX, s],
+    () => scaleAroundPointX(-0.2, 0),
+    [scaleAroundPointX],
   )
-  const onClickScaleResetHorizontal = useCallback(() => (s.scaleX = 1), [s])
+  const onClickScaleResetHorizontal = useCallback(
+    () => setScaleX(1),
+    [setScaleX],
+  )
 
   const onClickScaleUpVertical = useCallback(
-    () => s.scaleAroundPointY(0.2, 0),
-    [scaleY, s],
+    () => scaleAroundPointY(0.2, 0),
+    [scaleAroundPointY],
   )
   const onClickScaleDownVertical = useCallback(
-    () => s.scaleAroundPointY(-0.2, 0),
-    [scaleY, s],
+    () => scaleAroundPointY(-0.2, 0),
+    [scaleAroundPointY],
   )
-  const onClickScaleResetVertical = useCallback(() => (s.scaleY = 1), [s])
+  const onClickScaleResetVertical = useCallback(() => setScaleY(1), [setScaleY])
 
   const onWheel = useCallback(
     (e: React.WheelEvent) => {
@@ -84,27 +94,41 @@ const PianoRollWrapper: FC = observer(() => {
           ? 0.02 * e.deltaY
           : 0.01 * e.deltaX
         scaleYDelta = clamp(scaleYDelta, -0.15, 0.15) // prevent acceleration to zoom too fast
-        s.scaleAroundPointY(scaleYDelta, e.nativeEvent.offsetY)
+        scaleAroundPointY(scaleYDelta, e.nativeEvent.offsetY)
       } else if (e.altKey || e.ctrlKey) {
         // horizontal zoom
         const scaleFactor = isTouchPadEvent(e.nativeEvent) ? 0.01 : -0.01
         const scaleXDelta = clamp(e.deltaY * scaleFactor, -0.15, 0.15) // prevent acceleration to zoom too fast
-        s.scaleAroundPointX(scaleXDelta, e.nativeEvent.offsetX)
+        scaleAroundPointX(scaleXDelta, e.nativeEvent.offsetX)
       } else {
         // scrolling
         const scaleFactor = isTouchPadEvent(e.nativeEvent)
           ? 1
           : transform.pixelsPerKey * WHEEL_SCROLL_RATE
         const deltaY = e.deltaY * scaleFactor
-        s.scrollBy(-e.deltaX, -deltaY)
+        scrollBy(-e.deltaX, -deltaY)
       }
     },
-    [s, transform],
+    [scrollBy, transform, scaleAroundPointX, scaleAroundPointY],
   )
 
   const onChangeSplitPane = useCallback(() => {
-    s.setScrollTopInPixels(s.scrollTop)
-  }, [s])
+    setScrollTopInPixels(scrollTop)
+  }, [setScrollTopInPixels, scrollTop])
+
+  const onFocusNotes = useCallback(
+    () => setActivePane("notes"),
+    [setActivePane],
+  )
+
+  const onBlurNotes = useCallback(() => setActivePane(null), [setActivePane])
+
+  useEffect(
+    () => () => {
+      setActivePane(null)
+    },
+    [setActivePane],
+  )
 
   return (
     <Parent ref={ref}>
@@ -114,30 +138,41 @@ const PianoRollWrapper: FC = observer(() => {
         defaultSize={"60%"}
         onChange={onChangeSplitPane}
       >
-        <Alpha onWheel={onWheel} ref={alphaRef}>
-          <PianoRollStage width={size.width} height={alphaHeight} />
+        <Alpha
+          onWheel={onWheel}
+          ref={alphaRef}
+          {...keyboardShortcutProps}
+          onFocus={onFocusNotes}
+          onBlur={onBlurNotes}
+          tabIndex={0}
+        >
+          <PianoRollStage
+            width={size.width}
+            height={alphaHeight}
+            keyWidth={keyWidth}
+          />
           <VerticalScaleScrollBar
             scrollOffset={scrollTop}
             contentLength={contentHeight}
-            onScroll={useCallback((v: any) => s.setScrollTopInPixels(v), [s])}
+            onScroll={setScrollTopInPixels}
             onClickScaleUp={onClickScaleUpVertical}
             onClickScaleDown={onClickScaleDownVertical}
             onClickScaleReset={onClickScaleResetVertical}
           />
         </Alpha>
         <Beta>
-          <ControlPane />
+          <ControlPane axisWidth={keyWidth} />
         </Beta>
       </StyledSplitPane>
       <HorizontalScaleScrollBar
         scrollOffset={scrollLeft}
         contentLength={contentWidth}
         onScroll={useCallback(
-          (v: any) => {
-            s.setScrollLeftInPixels(v)
-            s.autoScroll = false
+          (v: number) => {
+            setScrollLeftInPixels(v)
+            setAutoScroll(false)
           },
-          [s],
+          [setScrollLeftInPixels, setAutoScroll],
         )}
         onClickScaleUp={onClickScaleUpHorizontal}
         onClickScaleDown={onClickScaleDownHorizontal}
@@ -145,6 +180,6 @@ const PianoRollWrapper: FC = observer(() => {
       />
     </Parent>
   )
-})
+}
 
 export default PianoRollWrapper

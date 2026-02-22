@@ -5,10 +5,10 @@ import { NoteCoordTransform } from "../transform/NoteCoordTransform"
 import { NotePoint } from "../transform/NotePoint"
 
 export interface Selection {
-  fromTick: number
-  fromNoteNumber: number
-  toTick: number
-  toNoteNumber: number
+  readonly fromTick: number
+  readonly fromNoteNumber: number
+  readonly toTick: number
+  readonly toNoteNumber: number
 }
 
 export namespace Selection {
@@ -65,5 +65,12 @@ export namespace Selection {
 
   export function getTo(selection: Selection): NotePoint {
     return { tick: selection.toTick, noteNumber: selection.toNoteNumber }
+  }
+
+  export const isEmpty = (selection: Selection): boolean => {
+    return (
+      selection.fromTick === selection.toTick ||
+      selection.fromNoteNumber === selection.toNoteNumber
+    )
   }
 }

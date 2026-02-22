@@ -1,29 +1,23 @@
-import { observer } from "mobx-react-lite"
-import { FC } from "react"
+import { FC, useMemo } from "react"
 import { Helmet } from "react-helmet-async"
-import { useStores } from "../../hooks/useStores"
-import Song from "../../song"
+import { useSong } from "../../hooks/useSong"
 
-export const Head: FC = observer(() => {
-  const { song } = useStores()
+export const Head: FC = () => {
+  const { filepath, name, isSaved } = useSong()
+
+  const songName = useMemo(() => {
+    if (filepath.length > 0) {
+      return filepath
+    }
+    if (name.length > 0) {
+      return name
+    }
+    return "New song"
+  }, [filepath, name])
 
   return (
     <Helmet>
-      <title>
-        {getSongDisplayName(song)}
-        {song.isSaved ? "" : " *"}
-        {" - signal"}
-      </title>
+      <title>{`${songName}${isSaved ? "" : " *"} - signal`}</title>
     </Helmet>
   )
-})
-
-function getSongDisplayName(song: Song): string {
-  if (song.filepath.length > 0) {
-    return song.filepath
-  }
-  if (song.name.length > 0) {
-    return song.name
-  }
-  return "New song"
 }

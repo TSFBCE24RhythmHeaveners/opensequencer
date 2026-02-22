@@ -1,86 +1,118 @@
-// global keyboard shortcuts or menu actions
-
 import {
-  isControlEventsClipboardData,
-  isPianoNotesClipboardData,
-} from "../clipboard/clipboardTypes"
-import Clipboard from "../services/Clipboard"
-import RootStore from "../stores/RootStore"
+  ControlEventsClipboardDataSchema,
+  PianoNotesClipboardDataSchema,
+} from "@signal-app/core"
+import { useCopySelection, useDeleteSelection, usePasteSelection } from "."
 import {
-  arrangeCopySelection,
-  arrangeDeleteSelection,
-  arrangePasteSelection,
+  useCopyControlSelection,
+  useDeleteControlSelection,
+  usePasteControlSelection,
+} from "../actions/control"
+import { useControlPane } from "../hooks/useControlPane"
+import { usePianoRoll } from "../hooks/usePianoRoll"
+import { useRouter } from "../hooks/useRouter"
+import { readClipboardData } from "../services/Clipboard"
+import {
+  useArrangeCopySelection,
+  useArrangeDeleteSelection,
+  useArrangePasteSelection,
 } from "./arrangeView"
 import {
-  copyControlSelection,
-  deleteControlSelection,
-  pasteControlSelection,
-} from "./control"
-import { copySelection, deleteSelection, pasteSelection } from "./selection"
-import {
-  copyTempoSelection,
-  deleteTempoSelection,
-  pasteTempoSelection,
+  useCopyTempoSelection,
+  useDeleteTempoSelection,
+  usePasteTempoSelection,
 } from "./tempo"
 
-export const copySelectionGlobal = (rootStore: RootStore) => () => {
-  switch (rootStore.router.path) {
-    case "/track":
-      if (rootStore.pianoRollStore.selectedNoteIds.length > 0) {
-        copySelection(rootStore)()
-      } else if (rootStore.controlStore.selectedEventIds.length > 0) {
-        copyControlSelection(rootStore)()
-      }
-      break
-    case "/arrange":
-      arrangeCopySelection(rootStore)()
-      break
-    case "/tempo":
-      copyTempoSelection(rootStore)()
-      break
+export const useCopySelectionGlobal = () => {
+  const { selectedNoteIds } = usePianoRoll()
+  const { path } = useRouter()
+  const { selectedEventIds: controlSelectedEventIds } = useControlPane()
+  const copySelection = useCopySelection()
+  const arrangeCopySelection = useArrangeCopySelection()
+  const copyTempoSelection = useCopyTempoSelection()
+  const copyControlSelection = useCopyControlSelection()
+
+  return () => {
+    switch (path) {
+      case "/track":
+        if (selectedNoteIds.length > 0) {
+          copySelection()
+        } else if (controlSelectedEventIds.length > 0) {
+          copyControlSelection()
+        }
+        break
+      case "/arrange":
+        arrangeCopySelection()
+        break
+      case "/tempo":
+        copyTempoSelection()
+        break
+    }
   }
 }
 
-export const cutSelectionGlobal = (rootStore: RootStore) => () => {
-  switch (rootStore.router.path) {
-    case "/track":
-      if (rootStore.pianoRollStore.selectedNoteIds.length > 0) {
-        copySelection(rootStore)()
-        deleteSelection(rootStore)()
-      } else if (rootStore.controlStore.selectedEventIds.length > 0) {
-        copyControlSelection(rootStore)()
-        deleteControlSelection(rootStore)()
-      }
-      break
-    case "/arrange":
-      arrangeCopySelection(rootStore)()
-      arrangeDeleteSelection(rootStore)()
-      break
-    case "/tempo":
-      copyTempoSelection(rootStore)()
-      deleteTempoSelection(rootStore)()
-      break
+export const useCutSelectionGlobal = () => {
+  const { selectedNoteIds } = usePianoRoll()
+  const { path } = useRouter()
+  const { selectedEventIds: controlSelectedEventIds } = useControlPane()
+  const copySelection = useCopySelection()
+  const deleteSelection = useDeleteSelection()
+  const arrangeCopySelection = useArrangeCopySelection()
+  const arrangeDeleteSelection = useArrangeDeleteSelection()
+  const copyTempoSelection = useCopyTempoSelection()
+  const deleteTempoSelection = useDeleteTempoSelection()
+  const copyControlSelection = useCopyControlSelection()
+  const deleteControlSelection = useDeleteControlSelection()
+
+  return () => {
+    switch (path) {
+      case "/track":
+        if (selectedNoteIds.length > 0) {
+          copySelection()
+          deleteSelection()
+        } else if (controlSelectedEventIds.length > 0) {
+          copyControlSelection()
+          deleteControlSelection()
+        }
+        break
+      case "/arrange":
+        arrangeCopySelection()
+        arrangeDeleteSelection()
+        break
+      case "/tempo":
+        copyTempoSelection()
+        deleteTempoSelection()
+        break
+    }
   }
 }
 
-export const pasteSelectionGlobal = (rootStore: RootStore) => () => {
-  switch (rootStore.router.path) {
-    case "/track":
-      const text = Clipboard.readText()
-      if (!text || text.length === 0) {
-        return
+export const usePasteSelectionGlobal = () => {
+  const { path } = useRouter()
+  const pasteSelection = usePasteSelection()
+  const arrangePasteSelection = useArrangePasteSelection()
+  const pasteTempoSelection = usePasteTempoSelection()
+  const pasteControlSelection = usePasteControlSelection()
+
+  return async () => {
+    switch (path) {
+      case "/track": {
+        const obj = await readClipboardData()
+        if (!obj) {
+          return
+        }
+        if (PianoNotesClipboardDataSchema.safeParse(obj).success) {
+          pasteSelection()
+        } else if (ControlEventsClipboardDataSchema.safeParse(obj).success) {
+          pasteControlSelection()
+        }
+        break
       }
-      const obj = JSON.parse(text)
-      if (isPianoNotesClipboardData(obj)) {
-        pasteSelection(rootStore)()
-      } else if (isControlEventsClipboardData(obj)) {
-        pasteControlSelection(rootStore)()
-      }
-      break
-    case "/arrange":
-      arrangePasteSelection(rootStore)()
-      break
-    case "/tempo":
-      pasteTempoSelection(rootStore)()
+      case "/arrange":
+        arrangePasteSelection()
+        break
+      case "/tempo":
+        pasteTempoSelection()
+    }
   }
 }

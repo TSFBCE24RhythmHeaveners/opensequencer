@@ -1,10 +1,7 @@
 import styled from "@emotion/styled"
-import { observer } from "mobx-react-lite"
-import React, { FC, useCallback } from "react"
-import { setTrackPan } from "../../actions"
-import { useStores } from "../../hooks/useStores"
+import { FC } from "react"
+import { usePanSlider } from "../../hooks/usePanSlider"
 import { Localized } from "../../localize/useLocalization"
-import { TrackId } from "../../track"
 import { Slider } from "../ui/Slider"
 
 const Container = styled.div`
@@ -20,25 +17,12 @@ const Label = styled.div`
   display: flex;
   align-items: center;
   margin-right: 0.5rem;
-  color: ${({ theme }) => theme.secondaryTextColor};
+  color: var(--color-text-secondary);
 `
 
-export interface PanSliderProps {
-  trackId: TrackId
-}
-
-const PAN_CENTER = 64
-
-const _PanSlider: FC<PanSliderProps> = observer(({ trackId }) => {
-  const rootStore = useStores()
-  const {
-    pianoRollStore: { currentPan },
-  } = rootStore
-  const onChange = useCallback(
-    (value: number) => setTrackPan(rootStore)(trackId, value),
-    [rootStore, trackId],
-  )
-  const pan = currentPan ?? PAN_CENTER
+export const PanSlider: FC = () => {
+  const { value, setValue, defaultValue, onPointerDown, onPointerUp } =
+    usePanSlider()
 
   return (
     <Container>
@@ -46,17 +30,17 @@ const _PanSlider: FC<PanSliderProps> = observer(({ trackId }) => {
         <Localized name="pan" />
       </Label>
       <Slider
-        value={pan}
-        onChange={(value) => onChange(value as number)}
-        onDoubleClick={() => onChange(PAN_CENTER)}
+        value={value}
+        onChange={setValue}
+        onDoubleClick={() => setValue(defaultValue)}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
         min={0}
         max={127}
-        defaultValue={PAN_CENTER}
+        defaultValue={defaultValue}
         minStepsBetweenThumbs={1}
-        marks={[PAN_CENTER]}
+        marks={[defaultValue]}
       ></Slider>
     </Container>
   )
-})
-
-export const PanSlider = React.memo(_PanSlider)
+}

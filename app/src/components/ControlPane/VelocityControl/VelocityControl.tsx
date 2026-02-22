@@ -1,5 +1,4 @@
 import styled from "@emotion/styled"
-import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { GraphAxis } from "../LineGraph/GraphAxis"
 import { VelocityControlCanvas } from "./VelocityControlCanvas"
@@ -7,6 +6,7 @@ import { VelocityControlCanvas } from "./VelocityControlCanvas"
 export interface PianoVelocityControlProps {
   width: number
   height: number
+  axisWidth: number
 }
 
 const Parent = styled.div`
@@ -16,22 +16,21 @@ const Parent = styled.div`
   left: 0;
 `
 
-const PianoVelocityControl: FC<PianoVelocityControlProps> = observer(
-  ({ width, height }: PianoVelocityControlProps) => {
-    return (
-      <Parent>
-        <GraphAxis values={[0, 32, 64, 96, 128]} onClick={() => {}} />
-        <VelocityControlCanvas width={width} height={height} />
-      </Parent>
-    )
-  },
-)
-
-function areEqual(
-  props: PianoVelocityControlProps,
-  nextProps: PianoVelocityControlProps,
-) {
-  return props.width === nextProps.width && props.height === nextProps.height
+const PianoVelocityControl: FC<PianoVelocityControlProps> = ({
+  width,
+  height,
+  axisWidth,
+}: PianoVelocityControlProps) => {
+  return (
+    <Parent>
+      <GraphAxis
+        width={axisWidth}
+        values={[1, 32, 64, 96, 127]}
+        onClick={() => {}}
+      />
+      <VelocityControlCanvas width={width} height={height} />
+    </Parent>
+  )
 }
 
-export default React.memo(PianoVelocityControl, areEqual)
+export default React.memo(PianoVelocityControl)

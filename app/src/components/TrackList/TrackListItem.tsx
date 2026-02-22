@@ -1,37 +1,34 @@
 import styled from "@emotion/styled"
+import { trackColorToCSSColor, TrackId } from "@signal-app/core"
 import Headset from "mdi-react/HeadphonesIcon"
 import Layers from "mdi-react/LayersIcon"
 import VolumeUp from "mdi-react/VolumeHighIcon"
 import VolumeOff from "mdi-react/VolumeOffIcon"
-import { observer } from "mobx-react-lite"
 import { FC, MouseEventHandler, useCallback, useState } from "react"
 import {
-  selectTrack,
-  toggleMuteTrack,
-  toggleSoloTrack,
-  toogleAllGhostTracks,
-  toogleGhostTrack,
+  useSelectTrack,
+  useToggleAllGhostTracks,
+  useToggleGhostTrack,
 } from "../../actions"
 import { useContextMenu } from "../../hooks/useContextMenu"
-import { useStores } from "../../hooks/useStores"
-import { categoryEmojis, getCategoryIndex } from "../../midi/GM"
-import Track from "../../track/Track"
-import { trackColorToCSSColor } from "../../track/TrackColor"
-import { TrackInstrumentName } from "./InstrumentName"
+import { usePianoRoll } from "../../hooks/usePianoRoll"
+import { useRouter } from "../../hooks/useRouter"
+import { useTrack } from "../../hooks/useTrack"
+import { useTrackMute } from "../../hooks/useTrackMute"
+import { InstrumentBrowser } from "../InstrumentBrowser/InstrumentBrowser"
+import { InstrumentEmoji, InstrumentName } from "./InstrumentName"
 import { TrackDialog } from "./TrackDialog"
 import { TrackListContextMenu } from "./TrackListContextMenu"
 import { TrackName } from "./TrackName"
 
 export type TrackListItemProps = {
-  track: Track
+  trackId: TrackId
 }
 
-const Container = styled.div<{ selected: boolean }>`
-  background-color: ${({ theme, selected }) =>
-    selected ? theme.highlightColor : "transparent"};
+const Container = styled.div`
+  background-color: transparent;
   border: 1px solid;
-  border-color: ${({ theme, selected }) =>
-    selected ? theme.dividerColor : "transparent"};
+  border-color: transparent;
   display: flex;
   align-items: center;
   padding: 0.5rem 0.5rem;
@@ -40,7 +37,12 @@ const Container = styled.div<{ selected: boolean }>`
   outline: none;
 
   &:hover {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
+  }
+
+  &[data-selected="true"] {
+    background-color: var(--color-highlight);
+    border-color: var(--color-divider);
   }
 `
 
@@ -51,21 +53,24 @@ const Label = styled.div`
 `
 
 const Instrument = styled.div`
-  color: ${({ theme }) => theme.secondaryTextColor};
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 `
 
-const Name = styled.div<{ selected: boolean }>`
+const Name = styled.div`
   font-weight: 600;
-  color: ${({ theme, selected }) =>
-    selected ? theme.textColor : theme.secondaryTextColor};
+  color: var(--color-text-secondary);
   padding-right: 0.5em;
   font-size: 0.875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  &[data-selected="true"] {
+    color: var(--color-text);
+  }
 `
 
 const Controls = styled.div`
@@ -75,22 +80,22 @@ const Controls = styled.div`
 
 const ChannelName = styled.div`
   flex-shrink: 0;
-  color: ${({ theme }) => theme.secondaryTextColor};
+  color: var(--color-text-secondary);
   font-size: 0.625rem;
   display: flex;
   align-items: center;
-  border: 1px solid ${({ theme }) => theme.dividerColor};
+  border: 1px solid var(--color-divider);
   padding: 0 0.25rem;
   cursor: pointer;
   height: 1.25rem;
   margin-left: 0.25rem;
 
   &:hover {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
   }
 `
 
-const Icon = styled.div<{ selected: boolean; color: string }>`
+const Icon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -100,17 +105,24 @@ const Icon = styled.div<{ selected: boolean; color: string }>`
   border-radius: 1.3rem;
   margin-right: 0.5rem;
   flex-shrink: 0;
-  background: ${({ theme, selected }) =>
-    selected ? theme.backgroundColor : theme.secondaryBackgroundColor};
-  border: 2px solid ${({ color }) => color};
+  background: var(--color-background-secondary);
+  border: 2px solid;
   box-sizing: border-box;
+
+  &[data-selected="true"] {
+    background: var(--color-background);
+  }
 `
 
-const IconInner = styled.div<{ selected: boolean }>`
-  opacity: ${({ selected }) => (selected ? 1 : 0.5)};
+const IconInner = styled.div`
+  opacity: 0.5;
+
+  &[data-selected="true"] {
+    opacity: 1;
+  }
 `
 
-const ControlButton = styled.div<{ active?: boolean }>`
+const ControlButton = styled.div`
   width: 1.9rem;
   height: 1.9rem;
   margin-right: 0.25rem;
@@ -118,130 +130,146 @@ const ControlButton = styled.div<{ active?: boolean }>`
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  color: ${({ theme, active }) =>
-    active ? theme.textColor : theme.secondaryTextColor};
+  color: var(--color-text-secondary);
   cursor: pointer;
   outline: none;
 
   &:hover {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
   }
 
   svg {
     width: 1.1rem;
     height: 1.1rem;
   }
+
+  &[data-active="true"] {
+    color: var(--color-text);
+  }
 `
 
-export const TrackListItem: FC<TrackListItemProps> = observer(({ track }) => {
-  const rootStore = useStores()
-  const { pianoRollStore, rootViewStore, trackMute, router } = rootStore
+export const TrackListItem: FC<TrackListItemProps> = ({ trackId }) => {
+  const { selectedTrackId, notGhostTrackIds } = usePianoRoll()
+  const {
+    channel,
+    isConductorTrack,
+    programNumber,
+    isRhythmTrack,
+    color: trackColor,
+    isMuted,
+    isSolo,
+  } = useTrack(trackId)
+  const { setPath } = useRouter()
+  const { toggleMute: toggleMuteTrack, toggleSolo: toggleSoloTrack } =
+    useTrackMute()
+  const toggleGhostTrack = useToggleGhostTrack()
+  const toggleAllGhostTracks = useToggleAllGhostTracks()
+  const selectTrack = useSelectTrack()
 
-  const selected =
-    !rootViewStore.isArrangeViewSelected &&
-    track.id === pianoRollStore.selectedTrackId
-  const mute = trackMute.isMuted(track.id)
-  const solo = trackMute.isSolo(track.id)
-  const ghostTrack = !pianoRollStore.notGhostTrackIds.has(track.id)
-  const channel = track.channel
+  const selected = trackId === selectedTrackId
+  const ghostTrack = !notGhostTrackIds.has(trackId)
   const { onContextMenu, menuProps } = useContextMenu()
   const [isDialogOpened, setDialogOpened] = useState(false)
+  const [isInstrumentBrowserOpen, setInstrumentBrowserOpen] = useState(false)
 
   const onDoubleClickIcon = useCallback(() => {
-    if (track.isConductorTrack) {
+    if (isConductorTrack) {
       return
     }
-    pianoRollStore.openInstrumentBrowser = true
-    pianoRollStore.instrumentBrowserSetting = {
-      programNumber: track.programNumber ?? 0,
-      isRhythmTrack: track.isRhythmTrack,
-    }
-  }, [])
+    setInstrumentBrowserOpen(true)
+  }, [isConductorTrack])
+
   const onClickMute: MouseEventHandler = useCallback(
     (e) => {
       e.stopPropagation()
-      toggleMuteTrack(rootStore)(track.id)
+      toggleMuteTrack(trackId)
     },
-    [track.id],
+    [trackId, toggleMuteTrack],
   )
+
   const onClickSolo: MouseEventHandler = useCallback(
     (e) => {
       e.stopPropagation()
-      toggleSoloTrack(rootStore)(track.id)
+      toggleSoloTrack(trackId)
     },
-    [track.id],
+    [trackId, toggleSoloTrack],
   )
+
   const onClickGhostTrack: MouseEventHandler = useCallback(
     (e) => {
       e.stopPropagation()
       if (e.nativeEvent.altKey) {
-        toogleAllGhostTracks(rootStore)()
+        toggleAllGhostTracks()
       } else {
-        toogleGhostTrack(rootStore)(track.id)
+        toggleGhostTrack(trackId)
       }
     },
-    [track.id],
+    [trackId, toggleAllGhostTracks, toggleGhostTrack],
   )
-  const onSelectTrack = useCallback(() => {
-    router.pushTrack()
-    selectTrack(rootStore)(track.id)
-  }, [track.id])
 
-  const onClickChannel: MouseEventHandler = useCallback((e) => {
-    e.stopPropagation()
+  const onSelectTrack = useCallback(() => {
+    setPath("/track")
+    selectTrack(trackId)
+  }, [trackId, selectTrack, setPath])
+
+  const onClickChannel = useCallback(() => {
     setDialogOpened(true)
   }, [])
 
-  const emoji = track.isRhythmTrack
-    ? "🥁"
-    : categoryEmojis[getCategoryIndex(track.programNumber ?? 0)]
-
   const color =
-    track.color !== undefined
-      ? trackColorToCSSColor(track.color)
-      : "transparent"
+    trackColor !== undefined ? trackColorToCSSColor(trackColor) : "transparent"
 
   return (
     <>
       <Container
-        selected={selected}
+        data-selected={selected}
         onMouseDown={onSelectTrack}
         onContextMenu={onContextMenu}
         tabIndex={-1}
       >
         <Icon
-          selected={selected}
-          color={color}
+          data-selected={selected}
+          style={{
+            borderColor: color,
+          }}
           onDoubleClick={onDoubleClickIcon}
         >
-          <IconInner selected={selected}>{emoji}</IconInner>
+          <IconInner data-selected={selected}>
+            <InstrumentEmoji
+              isRhythmTrack={isRhythmTrack}
+              programNumber={programNumber ?? 0}
+            />
+          </IconInner>
         </Icon>
         <div>
           <Label>
-            <Name selected={selected}>
-              <TrackName track={track} />
+            <Name data-selected={selected}>
+              <TrackName trackId={trackId} />
             </Name>
             <Instrument>
-              <TrackInstrumentName track={track} />
+              <InstrumentName
+                programNumber={programNumber}
+                isRhythmTrack={isRhythmTrack}
+              />
             </Instrument>
           </Label>
           <Controls>
             <ControlButton
-              active={solo}
+              data-active={isSolo}
               onMouseDown={onClickSolo}
               tabIndex={-1}
             >
               <Headset />
             </ControlButton>
             <ControlButton
-              active={mute}
+              data-active={isMuted}
               onMouseDown={onClickMute}
               tabIndex={-1}
             >
-              {mute ? <VolumeOff /> : <VolumeUp />}
+              {isMuted ? <VolumeOff /> : <VolumeUp />}
             </ControlButton>
             <ControlButton
-              active={ghostTrack}
+              data-active={ghostTrack}
               onMouseDown={onClickGhostTrack}
               tabIndex={-1}
             >
@@ -255,12 +283,18 @@ export const TrackListItem: FC<TrackListItemProps> = observer(({ track }) => {
           </Controls>
         </div>
       </Container>
-      <TrackListContextMenu {...menuProps} track={track} />
+      <TrackListContextMenu {...menuProps} trackId={trackId} />
       <TrackDialog
-        track={track}
+        trackId={trackId}
         open={isDialogOpened}
         onClose={() => setDialogOpened(false)}
       />
+      <InstrumentBrowser
+        isOpen={isInstrumentBrowserOpen}
+        onOpenChange={setInstrumentBrowserOpen}
+        trackId={trackId}
+        showInsertButton={true}
+      />
     </>
   )
-})
+}

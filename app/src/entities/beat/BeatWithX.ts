@@ -1,10 +1,8 @@
-import { Range } from "../geometry/Range"
-import { Measure } from "../measure/Measure"
+import { Beat, Measure, Range } from "@signal-app/core"
 import { TickTransform } from "../transform/TickTransform"
-import { Beat } from "./Beat"
 
 export type BeatWithX = Beat & {
-  x: number
+  readonly x: number
 }
 
 export namespace BeatWithX {

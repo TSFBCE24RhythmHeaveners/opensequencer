@@ -1,25 +1,23 @@
-import { observer } from "mobx-react-lite"
 import { useCallback } from "react"
-import { transposeSelection } from "../../actions"
-import { useStores } from "../../hooks/useStores"
+import { useTransposeSelection } from "../../actions"
+import { usePianoRoll } from "../../hooks/usePianoRoll"
 import { TransposeDialog } from "./TransposeDialog"
 
-export const PianoRollTransposeDialog = observer(() => {
-  const rootStore = useStores()
-  const { pianoRollStore } = rootStore
-  const { openTransposeDialog } = pianoRollStore
+export const PianoRollTransposeDialog = () => {
+  const { openTransposeDialog, setOpenTransposeDialog } = usePianoRoll()
+  const transposeSelection = useTransposeSelection()
 
   const onClose = useCallback(
-    () => (pianoRollStore.openTransposeDialog = false),
-    [pianoRollStore],
+    () => setOpenTransposeDialog(false),
+    [setOpenTransposeDialog],
   )
 
   const onClickOK = useCallback(
     (value: number) => {
-      transposeSelection(rootStore)(value)
-      pianoRollStore.openTransposeDialog = false
+      transposeSelection(value)
+      setOpenTransposeDialog(false)
     },
-    [pianoRollStore],
+    [setOpenTransposeDialog, transposeSelection],
   )
 
   return (
@@ -29,4 +27,4 @@ export const PianoRollTransposeDialog = observer(() => {
       onClickOK={onClickOK}
     />
   )
-})
+}

@@ -1,12 +1,14 @@
 import styled from "@emotion/styled"
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useDisableBounceScroll } from "../../hooks/useDisableBounceScroll"
+import { useDisableBrowserContextMenu } from "../../hooks/useDisableBrowserContextMenu"
+import { useDisableZoom } from "../../hooks/useDisableZoom"
+import { useGlobalKeyboardShortcut } from "../../hooks/useGlobalKeyboardShortcut"
+import { useRouter } from "../../hooks/useRouter"
 import { ArrangeEditor } from "../ArrangeView/ArrangeEditor"
 import { BuildInfo } from "../BuildInfo"
 import { CloudFileDialog } from "../CloudFileDialog/CloudFileDialog"
 import { ControlSettingDialog } from "../ControlSettingDialog/ControlSettingDialog"
-import { ExportDialog } from "../ExportDialog/ExportDialog"
 import { ExportProgressDialog } from "../ExportDialog/ExportProgressDialog"
 import { Head } from "../Head/Head"
 import { HelpDialog } from "../Help/HelpDialog"
@@ -36,11 +38,11 @@ const Column = styled.div`
   display: flex;
   flex-grow: 1;
   flex-direction: column;
+  outline: none;
 `
 
-const Routes: FC = observer(() => {
-  const { router } = useStores()
-  const path = router.path
+const Routes: FC = () => {
+  const { path } = useRouter()
   return (
     <>
       {path === "/track" && <PianoRollEditor />}
@@ -48,32 +50,38 @@ const Routes: FC = observer(() => {
       {path === "/arrange" && <ArrangeEditor />}
     </>
   )
-})
+}
 
-export const RootView: FC = () => (
-  <>
-    <DropZone>
-      <Column>
-        <Navigation />
-        <Container>
-          <Routes />
-          <TransportPanel />
-          <BuildInfo />
-        </Container>
-      </Column>
-    </DropZone>
-    <HelpDialog />
-    <ExportDialog />
-    <ExportProgressDialog />
-    <Head />
-    <SignInDialog />
-    <CloudFileDialog />
-    <SettingDialog />
-    <ControlSettingDialog />
-    <OnInit />
-    <OnBeforeUnload />
-    <PublishDialog />
-    <UserSettingsDialog />
-    <DeleteAccountDialog />
-  </>
-)
+export const RootView: FC = () => {
+  const keyboardShortcutProps = useGlobalKeyboardShortcut()
+  useDisableZoom()
+  useDisableBounceScroll()
+  useDisableBrowserContextMenu()
+
+  return (
+    <>
+      <DropZone>
+        <Column {...keyboardShortcutProps} tabIndex={0}>
+          <Navigation />
+          <Container>
+            <Routes />
+            <TransportPanel />
+            <BuildInfo />
+          </Container>
+        </Column>
+      </DropZone>
+      <HelpDialog />
+      <ExportProgressDialog />
+      <Head />
+      <SignInDialog />
+      <CloudFileDialog />
+      <SettingDialog />
+      <ControlSettingDialog />
+      <OnInit />
+      <OnBeforeUnload />
+      <PublishDialog />
+      <UserSettingsDialog />
+      <DeleteAccountDialog />
+    </>
+  )
+}

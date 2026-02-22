@@ -1,8 +1,15 @@
 ![logo-github](https://github.com/ryohey/signal/assets/5355966/46834ee4-30d8-4b66-a47c-6e081cc2c09f)
 
-![Node.js CI](https://github.com/ryohey/signal/workflows/Node.js%20CI/badge.svg) [![Join the chat at https://discord.gg/XQxzNdDJse](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/XQxzNdDJse)
+[![Join the chat at https://discord.gg/XQxzNdDJse](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2FXQxzNdDJse%3Fwith_counts%3Dtrue&query=%24.approximate_presence_count&suffix=%20online&style=flat&logo=discord&logoColor=white&label=discord&labelColor=%235865F2&color=%23424549)](https://discord.gg/XQxzNdDJse)
+![Node.js CI](https://github.com/ryohey/signal/workflows/Node.js%20CI/badge.svg)
 
-signal is a user-friendly music sequencer application developed using web technology, designed for seamless, cross-platform use.
+[signal](https://signalmidi.app) is a user-friendly music sequencer application developed using web technologies, designed for seamless, cross-platform use, released under the MIT license.
+
+<img width="1024" alt="image" src="https://github.com/user-attachments/assets/0c64ff3d-b095-4359-ab77-9355e04a8bee" />
+
+## Launch
+
+https://signalmidi.app/edit
 
 ## Goals
 
@@ -52,9 +59,21 @@ By setting these constraints, signal aims to offer a streamlined and distraction
    ```
 2. The application should now be running on [http://localhost:3000](http://localhost:3000).
 
+### Running via Docker
+> [!NOTE] 
+> with docker, `npm install` and `npm run build` will not be necessary, and you will only need to install **docker**, then **clone the repository**, then run the command specified below.
+
+1. to run via docker, run:
+   ```sh
+   docker compose up
+   # or 
+   docker compose up -d
+   ```
+2. The application should now be accessible on [http://localhost:3000](http://localhost:3000).
+
 ## Contribution
 
-As the creator of signal, I, @ryohey, welcome any form of contribution to this music sequencer application. Your support, whether it's through code improvements, bug fixes, or feedback, is invaluable in enhancing and evolving signal.
+As the creator of signal, I, [@ryohey](https://github.com/ryohey), welcome any form of contribution to this music sequencer application. Your support, whether it's through code improvements, bug fixes, or feedback, is invaluable in enhancing and evolving signal.
 
 ### Reporting Bugs
 
@@ -69,3 +88,6 @@ As the creator of signal, I, @ryohey, welcome any form of contribution to this m
 - signal is a personal project that I've been passionately developing. If you like what you see and wish to support my efforts, you can do so through [GitHub Sponsors](https://github.com/sponsors/ryohey). Even the smallest contribution can make a significant difference and is deeply appreciated.
 
 Your engagement, big or small, contributes greatly to the development of signal. Thank you for being a part of this journey, and I'm eager to see the impact of your contributions on this application.
+
+## License
+MIT. See [LICENSE](/LICENSE)

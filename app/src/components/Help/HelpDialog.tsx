@@ -1,7 +1,6 @@
 import styled from "@emotion/styled"
-import { observer } from "mobx-react-lite"
 import { FC, ReactNode } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useRootView } from "../../hooks/useRootView"
 import { envString } from "../../localize/envString"
 import { Localized } from "../../localize/useLocalization"
 import {
@@ -32,8 +31,8 @@ const Key = styled.div`
   border: 1px solid white;
   border-radius: 4px;
   padding: 0.1em 0.5em 0.2em 0.5em;
-  background: ${({ theme }) => theme.textColor};
-  color: ${({ theme }) => theme.backgroundColor};
+  background: var(--color-text);
+  color: var(--color-background);
   box-shadow: inset 0 -2px 0 0px #0000006b;
 `
 
@@ -56,14 +55,12 @@ const HotKey: FC<HotKeyProps> = ({ hotKeys, text }) => {
   )
 }
 
-export const HelpDialog: FC = observer(() => {
-  const { rootViewStore } = useStores()
-  const isOpen = rootViewStore.openHelp
-
-  const close = () => (rootViewStore.openHelp = false)
+export const HelpDialog: FC = () => {
+  const { openHelpDialog, setOpenHelpDialog } = useRootView()
+  const close = () => setOpenHelpDialog(false)
 
   return (
-    <Dialog open={isOpen} onOpenChange={close}>
+    <Dialog open={openHelpDialog} onOpenChange={close}>
       <DialogTitle>
         <Localized name="help" />
       </DialogTitle>
@@ -71,6 +68,22 @@ export const HelpDialog: FC = observer(() => {
         <h3>
           <Localized name="keyboard-shortcut" />
         </h3>
+        <HotKey
+          hotKeys={[[envString.altOrOption, "N"]]}
+          text={<Localized name="new-song" />}
+        />
+        <HotKey
+          hotKeys={[[envString.cmdOrCtrl, "O"]]}
+          text={<Localized name="open-song" />}
+        />
+        <HotKey
+          hotKeys={[[envString.cmdOrCtrl, "S"]]}
+          text={<Localized name="save-song" />}
+        />
+        <HotKey
+          hotKeys={[[envString.cmdOrCtrl, "Shift", "S"]]}
+          text={<Localized name="save-as" />}
+        />
         <HotKey hotKeys={[["Space"]]} text={<Localized name="play-pause" />} />
         <HotKey hotKeys={[["Enter"]]} text={<Localized name="stop" />} />
         <HotKey
@@ -162,4 +175,4 @@ export const HelpDialog: FC = observer(() => {
       </DialogActions>
     </Dialog>
   )
-})
+}

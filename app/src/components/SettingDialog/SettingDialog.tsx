@@ -1,7 +1,6 @@
 import styled from "@emotion/styled"
-import { observer } from "mobx-react-lite"
 import { FC, useCallback, useState } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useRootView } from "../../hooks/useRootView"
 import { Localized } from "../../localize/useLocalization"
 import {
   Dialog,
@@ -30,15 +29,13 @@ const Content = styled.div`
   min-height: 24rem;
 `
 
-export const SettingDialog: FC = observer(() => {
-  const rootStore = useStores()
-  const { rootViewStore } = rootStore
-  const { openSettingDialog: open } = rootViewStore
+export const SettingDialog: FC = () => {
+  const { openSettingDialog: open, setOpenSettingDialog } = useRootView()
   const [route, setRoute] = useState<SettingRoute>("general")
 
   const onClose = useCallback(
-    () => (rootViewStore.openSettingDialog = false),
-    [rootViewStore],
+    () => setOpenSettingDialog(false),
+    [setOpenSettingDialog],
   )
 
   return (
@@ -59,4 +56,4 @@ export const SettingDialog: FC = observer(() => {
       </DialogActions>
     </Dialog>
   )
-})
+}

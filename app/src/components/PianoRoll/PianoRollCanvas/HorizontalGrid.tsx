@@ -1,11 +1,8 @@
-import { GLNode, useProjectionMatrix } from "@ryohey/webgl-react"
+import { GLNode, useTransform } from "@ryohey/webgl-react"
 import { vec4 } from "gl-matrix"
 import { FC } from "react"
 import { Rect } from "../../../entities/geometry/Rect"
-import {
-  HorizontalGridBuffer,
-  HorizontalGridShader,
-} from "./shaders/HorizontalGridShader"
+import { HorizontalGridShader } from "./shaders/HorizontalGridShader"
 
 export interface HorizontalGridProps {
   rect: Rect
@@ -24,12 +21,11 @@ export const HorizontalGrid: FC<HorizontalGridProps> = ({
   height,
   zIndex,
 }) => {
-  const projectionMatrix = useProjectionMatrix()
+  const projectionMatrix = useTransform()
 
   return (
     <GLNode
-      createShader={HorizontalGridShader}
-      createBuffer={(gl) => new HorizontalGridBuffer(gl)}
+      shader={HorizontalGridShader}
       uniforms={{
         projectionMatrix,
         color,

@@ -1,22 +1,24 @@
 import FormatListBulleted from "mdi-react/FormatListBulletedIcon"
-import { observer } from "mobx-react-lite"
 import { FC, MouseEvent, useCallback } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useEventList } from "../../hooks/useEventList"
 import { Localized } from "../../localize/useLocalization"
 import { ToolbarButton } from "../Toolbar/ToolbarButton"
 import { Tooltip } from "../ui/Tooltip"
 
-export const EventListButton: FC = observer(() => {
-  const { pianoRollStore } = useStores()
+export const EventListButton: FC = () => {
+  const { setOpen, isOpen } = useEventList()
 
   return (
     <Tooltip title={<Localized name="event-list" />}>
       <ToolbarButton
-        selected={pianoRollStore.showEventList}
-        onMouseDown={useCallback((e: MouseEvent) => {
-          e.preventDefault()
-          pianoRollStore.showEventList = !pianoRollStore.showEventList
-        }, [])}
+        selected={isOpen}
+        onMouseDown={useCallback(
+          (e: MouseEvent) => {
+            e.preventDefault()
+            setOpen((prev) => !prev)
+          },
+          [setOpen],
+        )}
       >
         <FormatListBulleted
           style={{
@@ -27,4 +29,4 @@ export const EventListButton: FC = observer(() => {
       </ToolbarButton>
     </Tooltip>
   )
-})
+}

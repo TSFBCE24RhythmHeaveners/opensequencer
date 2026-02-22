@@ -1,7 +1,8 @@
+import { TrackEvent } from "@signal-app/core"
 import isEqual from "lodash/isEqual"
 import React, { FC, useCallback } from "react"
-import { useStores } from "../../hooks/useStores"
-import { TrackEvent } from "../../track"
+import { usePianoRoll } from "../../hooks/usePianoRoll"
+import { useTrack } from "../../hooks/useTrack"
 import { getEventController } from "./EventController"
 import { Cell, Row } from "./EventList"
 import { EventListInput } from "./EventListInput"
@@ -9,7 +10,7 @@ import { EventListInput } from "./EventListInput"
 interface EventListItemProps {
   item: TrackEvent
   style?: React.CSSProperties
-  onClick: (e: React.MouseEvent, ev: TrackEvent) => void
+  onClick?: (e: React.MouseEvent, ev: TrackEvent) => void
 }
 
 const equalEventListItemProps = (
@@ -22,28 +23,26 @@ const equalEventListItemProps = (
 
 export const EventListItem: FC<EventListItemProps> = React.memo(
   ({ item, style, onClick }) => {
-    const rootStore = useStores()
-    const {
-      pianoRollStore: { selectedTrack },
-    } = rootStore
+    const { selectedTrackId } = usePianoRoll()
+    const { removeEvent, updateEvent } = useTrack(selectedTrackId)
 
     const controller = getEventController(item)
 
     const onDelete = useCallback(
       (e: TrackEvent) => {
-        selectedTrack?.removeEvent(e.id)
+        removeEvent(e.id)
       },
-      [rootStore],
+      [removeEvent],
     )
 
     const onChangeTick = useCallback(
       (input: string) => {
-        const value = parseInt(input)
-        if (!isNaN(value)) {
-          selectedTrack?.updateEvent(item.id, { tick: Math.max(0, value) })
+        const value = parseInt(input, 10)
+        if (!Number.isNaN(value)) {
+          updateEvent(item.id, { tick: Math.max(0, value) })
         }
       },
-      [rootStore, item],
+      [updateEvent, item],
     )
 
     const onChangeGate = useCallback(
@@ -53,10 +52,10 @@ export const EventListItem: FC<EventListItemProps> = React.memo(
         }
         const obj = controller.gate.update(value)
         if (obj !== null) {
-          selectedTrack?.updateEvent(item.id, obj)
+          updateEvent(item.id, obj)
         }
       },
-      [rootStore, item],
+      [controller, updateEvent, item],
     )
 
     const onChangeValue = useCallback(
@@ -66,16 +65,19 @@ export const EventListItem: FC<EventListItemProps> = React.memo(
         }
         const obj = controller.value.update(value)
         if (obj !== null) {
-          selectedTrack?.updateEvent(item.id, obj)
+          updateEvent(item.id, obj)
         }
       },
-      [rootStore, item],
+      [controller, updateEvent, item],
     )
 
     return (
       <Row
         style={style}
-        onClick={useCallback((e: React.MouseEvent) => onClick(e, item), [item])}
+        onClick={useCallback(
+          (e: React.MouseEvent) => onClick?.(e, item),
+          [item, onClick],
+        )}
         onKeyDown={useCallback(
           (e: React.KeyboardEvent) => {
             if (
@@ -86,7 +88,7 @@ export const EventListItem: FC<EventListItemProps> = React.memo(
               e.stopPropagation()
             }
           },
-          [item],
+          [item, onDelete],
         )}
         tabIndex={-1}
       >

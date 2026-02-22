@@ -1,8 +1,7 @@
+import { Song, songFromMidi, songToMidi } from "@signal-app/core"
 import { basename } from "../helpers/path"
-import { songFromMidi, songToMidi } from "../midi/midiConversion"
 import { writeFile } from "../services/fs-helper"
-import RootStore from "../stores/RootStore"
-import { setSong } from "./song"
+import { useSetSong } from "./song"
 
 // URL parameter for automation purposes used in scripts/perf/index.js
 // /edit?disableFileSystem=true
@@ -13,32 +12,36 @@ export const hasFSAccess =
   ("chooseFileSystemEntries" in window || "showOpenFilePicker" in window) &&
   !disableFileSystem
 
-export const openFile = async (rootStore: RootStore) => {
-  let fileHandle: FileSystemFileHandle
-  try {
-    fileHandle = (
-      await window.showOpenFilePicker({
-        types: [
-          {
-            description: "MIDI file",
-            accept: { "audio/midi": [".mid"] },
-          },
-        ],
-      })
-    )[0]
-  } catch (ex) {
-    if ((ex as Error).name === "AbortError") {
+export const useOpenFile = () => {
+  const setSong = useSetSong()
+
+  return async () => {
+    let fileHandle: FileSystemFileHandle
+    try {
+      fileHandle = (
+        await window.showOpenFilePicker({
+          types: [
+            {
+              description: "MIDI file",
+              accept: { "audio/midi": [".mid"] },
+            },
+          ],
+        })
+      )[0]
+    } catch (ex) {
+      if ((ex as Error).name === "AbortError") {
+        return
+      }
+      const msg = "An error occured trying to open the file."
+      console.error(msg, ex)
+      alert(msg)
       return
     }
-    const msg = "An error occured trying to open the file."
-    console.error(msg, ex)
-    alert(msg)
-    return
+    const file = await fileHandle.getFile()
+    const song = await songFromFile(file)
+    song.fileHandle = fileHandle
+    setSong(song)
   }
-  const file = await fileHandle.getFile()
-  const song = await songFromFile(file)
-  song.fileHandle = fileHandle
-  setSong(rootStore)(song)
 }
 
 export const songFromFile = async (file: File) =>
@@ -47,6 +50,11 @@ export const songFromFile = async (file: File) =>
     "path" in file ? (file.path as string) : undefined,
     file.name,
   )
+
+// Use the file name without extension as the song title
+const getNameFromPathOrName = (pathOrName: string) => {
+  return basename(pathOrName)?.replace(/\.[^/.]+$/, "") ?? ""
+}
 
 export const songFromArrayBuffer = (
   content: ArrayBuffer,
@@ -57,7 +65,7 @@ export const songFromArrayBuffer = (
   const pathOrName = filePath ?? name
   if (song.name.length === 0 && pathOrName) {
     // Use the file name without extension as the song title
-    song.name = basename(pathOrName)?.replace(/\.[^/.]+$/, "") ?? ""
+    song.name = getNameFromPathOrName(pathOrName)
   }
   if (filePath) {
     song.filepath = filePath
@@ -66,15 +74,14 @@ export const songFromArrayBuffer = (
   return song
 }
 
-export const saveFile = async (rootStore: RootStore) => {
-  const { song } = rootStore
+export const saveFile = async (song: Song) => {
   const fileHandle = song.fileHandle
   if (fileHandle === null) {
-    await saveFileAs(rootStore)
+    await saveFileAs(song)
     return
   }
 
-  const data = songToMidi(song).buffer
+  const data = songToMidi(song).buffer as ArrayBuffer
   try {
     await writeFile(fileHandle, data)
     song.isSaved = true
@@ -84,7 +91,7 @@ export const saveFile = async (rootStore: RootStore) => {
   }
 }
 
-export const saveFileAs = async ({ song }: RootStore) => {
+export const saveFileAs = async (song: Song) => {
   let fileHandle
   try {
     fileHandle = await window.showSaveFilePicker({
@@ -105,10 +112,11 @@ export const saveFileAs = async ({ song }: RootStore) => {
     return
   }
   try {
-    const data = songToMidi(song).buffer
+    const data = songToMidi(song).buffer as ArrayBuffer
     await writeFile(fileHandle, data)
-    song.isSaved = true
     song.fileHandle = fileHandle
+    song.name = getNameFromPathOrName(fileHandle.name)
+    song.isSaved = true
   } catch (ex) {
     const msg = "Unable to save file."
     console.error(msg, ex)

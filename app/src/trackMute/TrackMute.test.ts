@@ -1,5 +1,6 @@
-import { TrackId } from "../track/Track"
-import TrackMute from "./TrackMute"
+import { TrackId } from "@signal-app/core"
+import { describe, expect, it } from "vitest"
+import { TrackMute } from "./TrackMute"
 
 function getTrackId(value: number): TrackId {
   return value as TrackId
@@ -7,45 +8,54 @@ function getTrackId(value: number): TrackId {
 
 describe("TrackMute", () => {
   it("not muted by default", () => {
-    const t = new TrackMute()
-    expect(t.isMuted(getTrackId(getTrackId(0)))).toBeFalsy()
-    expect(t.isMuted(getTrackId(100))).toBeFalsy()
+    const t: TrackMute = {
+      mutes: {},
+      solos: {},
+    }
+    expect(TrackMute.isMuted(getTrackId(0))(t)).toBeFalsy()
+    expect(TrackMute.isMuted(getTrackId(100))(t)).toBeFalsy()
   })
 
   it("mute", () => {
-    const t = new TrackMute()
-    expect(t.isMuted(getTrackId(getTrackId(0)))).toBeFalsy()
-    t.mute(getTrackId(getTrackId(0)))
-    expect(t.isMuted(getTrackId(getTrackId(0)))).toBeTruthy()
-    expect(t.shouldPlayTrack(getTrackId(getTrackId(0)))).toBeFalsy()
-    t.unmute(getTrackId(getTrackId(0)))
-    expect(t.isMuted(getTrackId(getTrackId(0)))).toBeFalsy()
+    let t: TrackMute = {
+      mutes: {},
+      solos: {},
+    }
+    expect(TrackMute.isMuted(getTrackId(0))(t)).toBeFalsy()
+    t = TrackMute.mute(getTrackId(0))(t)
+    expect(TrackMute.isMuted(getTrackId(0))(t)).toBeTruthy()
+    expect(TrackMute.shouldPlayTrack(getTrackId(0))(t)).toBeFalsy()
+    t = TrackMute.unmute(getTrackId(0))(t)
+    expect(TrackMute.isMuted(getTrackId(0))(t)).toBeFalsy()
   })
 
   it("solo", () => {
-    const t = new TrackMute()
-    expect(t.isSolo(getTrackId(getTrackId(0)))).toBeFalsy()
-    t.solo(getTrackId(0))
-    expect(t.isSolo(getTrackId(0))).toBeTruthy()
-    expect(t.isSoloMode()).toBeTruthy()
-    expect(t.isMuted(getTrackId(1))).toBeTruthy()
-    expect(t.shouldPlayTrack(getTrackId(0))).toBeTruthy()
-    expect(t.shouldPlayTrack(getTrackId(1))).toBeFalsy()
-    t.solo(getTrackId(1))
-    expect(t.isSolo(getTrackId(0))).toBeTruthy()
-    expect(t.isSolo(getTrackId(1))).toBeTruthy()
-    expect(t.isSoloMode()).toBeTruthy()
-    expect(t.isMuted(getTrackId(0))).toBeFalsy()
-    expect(t.isMuted(getTrackId(1))).toBeFalsy()
-    expect(t.isMuted(getTrackId(2))).toBeTruthy()
-    expect(t.shouldPlayTrack(getTrackId(0))).toBeTruthy()
-    expect(t.shouldPlayTrack(getTrackId(1))).toBeTruthy()
-    expect(t.shouldPlayTrack(getTrackId(2))).toBeFalsy()
-    t.unsolo(getTrackId(0))
-    expect(t.isSolo(getTrackId(0))).toBeFalsy()
-    expect(t.isSoloMode()).toBeTruthy()
-    t.unsolo(getTrackId(1))
-    expect(t.isSolo(getTrackId(1))).toBeFalsy()
-    expect(t.isSoloMode()).toBeFalsy()
+    let t: TrackMute = {
+      mutes: {},
+      solos: {},
+    }
+    expect(TrackMute.isSolo(getTrackId(0))(t)).toBeFalsy()
+    t = TrackMute.solo(getTrackId(0))(t)
+    expect(TrackMute.isSolo(getTrackId(0))(t)).toBeTruthy()
+    expect(TrackMute.isSoloMode(t)).toBeTruthy()
+    expect(TrackMute.isMuted(getTrackId(1))(t)).toBeTruthy()
+    expect(TrackMute.shouldPlayTrack(getTrackId(0))(t)).toBeTruthy()
+    expect(TrackMute.shouldPlayTrack(getTrackId(1))(t)).toBeFalsy()
+    t = TrackMute.solo(getTrackId(1))(t)
+    expect(TrackMute.isSolo(getTrackId(0))(t)).toBeTruthy()
+    expect(TrackMute.isSolo(getTrackId(1))(t)).toBeTruthy()
+    expect(TrackMute.isSoloMode(t)).toBeTruthy()
+    expect(TrackMute.isMuted(getTrackId(0))(t)).toBeFalsy()
+    expect(TrackMute.isMuted(getTrackId(1))(t)).toBeFalsy()
+    expect(TrackMute.isMuted(getTrackId(2))(t)).toBeTruthy()
+    expect(TrackMute.shouldPlayTrack(getTrackId(0))(t)).toBeTruthy()
+    expect(TrackMute.shouldPlayTrack(getTrackId(1))(t)).toBeTruthy()
+    expect(TrackMute.shouldPlayTrack(getTrackId(2))(t)).toBeFalsy()
+    t = TrackMute.unsolo(getTrackId(0))(t)
+    expect(TrackMute.isSolo(getTrackId(0))(t)).toBeFalsy()
+    expect(TrackMute.isSoloMode(t)).toBeTruthy()
+    t = TrackMute.unsolo(getTrackId(1))(t)
+    expect(TrackMute.isSolo(getTrackId(1))(t)).toBeFalsy()
+    expect(TrackMute.isSoloMode(t)).toBeFalsy()
   })
 })

@@ -1,19 +1,21 @@
+import {
+  NoteEvent,
+  TrackEvent,
+  TrackId,
+} from "@signal-app/core"
 import { Player } from "@signal-app/player"
 import { deserializeSingleEvent, Stream } from "midifile-ts"
 import { makeObservable, observable, observe } from "mobx"
-import RootStore from "../stores/RootStore"
-import { NoteEvent, TrackEvent, TrackId } from "../track"
+import { SongStore } from "../stores/SongStore"
 
 export class MIDIRecorder {
   private recordedNotes: { [key: TrackId]: NoteEvent[] } = {}
-  private player: Player
-  private rootStore: RootStore
   isRecording: boolean = false
 
-  constructor(player: Player, rootStore: RootStore) {
-    this.player = player
-    this.rootStore = rootStore
-
+  constructor(
+    private readonly songStore: SongStore,
+    private readonly player: Player,
+  ) {
     makeObservable(this, {
       isRecording: observable,
     })
@@ -24,15 +26,10 @@ export class MIDIRecorder {
         return
       }
 
-      const track = rootStore.pianoRollStore.selectedTrack
-      if (track === undefined) {
-        return
-      }
-
       const tick = Math.floor(change.object.get())
 
       Object.entries(this.recordedNotes).forEach(([trackId, notes]) => {
-        const track = rootStore.song.getTrack(parseInt(trackId) as TrackId)
+        const track = this.songStore.song.getTrack(parseInt(trackId) as TrackId)
         if (track === undefined) {
           return
         }
@@ -45,11 +42,11 @@ export class MIDIRecorder {
     })
 
     observe(this, "isRecording", (change) => {
-      this.recordedNotes = []
+      this.recordedNotes = {}
 
       if (!change.newValue) {
         // stop recording
-        this.rootStore.song.tracks.forEach((track) => {
+        this.songStore.song.tracks.forEach((track) => {
           const events = track.events
             .filter((e) => e.isRecording === true)
             .map<Partial<TrackEvent>>((e) => ({ ...e, isRecording: false }))
@@ -60,7 +57,9 @@ export class MIDIRecorder {
   }
 
   onMessage(e: WebMidi.MIDIMessageEvent) {
-    const { pianoRollStore, player } = this.rootStore
+    if (!this.isRecording) {
+      return
+    }
 
     const stream = new Stream(e.data)
     const message = deserializeSingleEvent(stream)
@@ -69,37 +68,15 @@ export class MIDIRecorder {
       return
     }
 
+    const tick = Math.floor(this.player.position)
+
     // route to tracks by input channel
-    const tracks = this.rootStore.song.tracks.filter(
+    const tracks = this.songStore.song.tracks.filter(
       (t) =>
         !t.isConductorTrack &&
         (t.inputChannel === undefined ||
           t.inputChannel.value === message.channel),
     )
-
-    // sound preview
-    // route to each track
-    tracks.forEach((track) => {
-      if (track.channel === undefined) {
-        return
-      }
-      const event = { ...message, channel: track.channel }
-      player.sendEvent(event)
-
-      if (track.id === pianoRollStore.selectedTrackId) {
-        if (event.subtype === "noteOn") {
-          pianoRollStore.previewingNoteNumbers.add(event.noteNumber)
-        } else if (event.subtype === "noteOff") {
-          pianoRollStore.previewingNoteNumbers.delete(event.noteNumber)
-        }
-      }
-    })
-
-    if (!this.isRecording) {
-      return
-    }
-
-    const tick = Math.floor(player.position)
 
     switch (message.subtype) {
       case "noteOn": {

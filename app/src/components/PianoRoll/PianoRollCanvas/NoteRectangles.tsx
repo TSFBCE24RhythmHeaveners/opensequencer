@@ -1,8 +1,8 @@
-import { GLNode, useProjectionMatrix } from "@ryohey/webgl-react"
+import { GLNode, useTransform } from "@ryohey/webgl-react"
 import { vec4 } from "gl-matrix"
 import { FC } from "react"
 import { Rect } from "../../../entities/geometry/Rect"
-import { INoteData, NoteBuffer, NoteShader } from "./shaders/NoteShader"
+import { INoteData, NoteShader } from "./shaders/NoteShader"
 
 export interface NoteRectanglesProps {
   rects: (Rect & INoteData)[]
@@ -21,12 +21,11 @@ export const NoteRectangles: FC<NoteRectanglesProps> = ({
   selectedColor,
   zIndex,
 }) => {
-  const projectionMatrix = useProjectionMatrix()
+  const projectionMatrix = useTransform()
 
   return (
     <GLNode
-      createShader={NoteShader}
-      createBuffer={(vertexArray) => new NoteBuffer(vertexArray)}
+      shader={NoteShader}
       uniforms={{
         projectionMatrix,
         strokeColor,

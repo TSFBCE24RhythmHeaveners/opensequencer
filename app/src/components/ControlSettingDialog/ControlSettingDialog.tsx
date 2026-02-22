@@ -3,16 +3,16 @@ import styled from "@emotion/styled"
 import { range } from "lodash"
 import ChevronDoubleLeftIcon from "mdi-react/ChevronDoubleLeftIcon"
 import ChevronDoubleRightIcon from "mdi-react/ChevronDoubleRightIcon"
-import { observer } from "mobx-react-lite"
 import { useCallback, useState } from "react"
-import { useStores } from "../../hooks/useStores"
-import { Localized } from "../../localize/useLocalization"
 import {
   ControlMode,
   controlModeKey,
   defaultControlModes,
   isEqualControlMode,
-} from "../../stores/ControlStore"
+} from "../../entities/control/ControlMode"
+import { useControlPane } from "../../hooks/useControlPane"
+import { useRootView } from "../../hooks/useRootView"
+import { Localized } from "../../localize/useLocalization"
 import { ControlName } from "../ControlPane/ControlName"
 import {
   Dialog,
@@ -20,8 +20,8 @@ import {
   DialogContent,
   DialogTitle,
 } from "../Dialog/Dialog"
+import { DraggableList } from "../DraggableList/DraggableList"
 import { Button } from "../ui/Button"
-import { DraggableList } from "./DraggableList"
 
 const nonControllerControlModes: ControlMode[] = [
   {
@@ -37,11 +37,13 @@ const getAllControlModes = (): ControlMode[] =>
     range(0, 128).map((i) => ({ type: "controller", controllerType: i })),
   )
 
-const Item = styled.div<{ isSelected: boolean }>`
+const Item = styled.div`
   padding: 0.5rem 1rem;
-  background: ${({ theme, isSelected }) =>
-    isSelected ? theme.themeColor : "transparent"};
   white-space: nowrap;
+
+  &[data-selected="true"] {
+    background: var(--color-theme);
+  }
 `
 
 const Content = styled.div`
@@ -53,7 +55,7 @@ const Pane = styled.div`
   flex-grow: 1;
   flex-basis: 0;
   overflow: auto;
-  background: ${({ theme }) => theme.secondaryBackgroundColor};
+  background: var(--color-background-secondary);
 `
 
 const CenterPane = styled.div`
@@ -65,7 +67,7 @@ const CenterPane = styled.div`
 `
 
 const InsertButton = styled(Button)`
-  background: ${({ theme }) => theme.secondaryBackgroundColor};
+  background: var(--color-background-secondary);
   display: flex;
   align-items: center;
   margin-bottom: 1rem;
@@ -73,21 +75,20 @@ const InsertButton = styled(Button)`
   justify-content: center;
 `
 
-export const ControlSettingDialog = observer(() => {
-  const rootStore = useStores()
-  const { rootViewStore, controlStore } = rootStore
-  const { openControlSettingDialog: open } = rootViewStore
+export const ControlSettingDialog = () => {
+  const { openControlSettingDialog: open, setOpenControlSettingDialog } =
+    useRootView()
+  const { controlModes, setControlModes } = useControlPane()
   const [selectedLeftMode, setSelectedLeftMode] = useState<ControlMode | null>(
     null,
   )
   const [selectedRightMode, setSelectedRightMode] =
     useState<ControlMode | null>(null)
 
-  const leftModes = controlStore.controlModes
+  const leftModes = controlModes
 
   const rightModes = getAllControlModes().filter(
-    (mode) =>
-      !controlStore.controlModes.some((m) => isEqualControlMode(m, mode)),
+    (mode) => !controlModes.some((m) => isEqualControlMode(m, mode)),
   )
 
   const leftItems = leftModes.map((mode) => ({
@@ -103,21 +104,23 @@ export const ControlSettingDialog = observer(() => {
   }))
 
   const onClose = useCallback(
-    () => (rootViewStore.openControlSettingDialog = false),
-    [rootViewStore],
+    () => setOpenControlSettingDialog(false),
+    [setOpenControlSettingDialog],
   )
 
   const onClickAdd = () => {
     if (selectedRightMode) {
-      controlStore.controlModes.push(selectedRightMode)
+      setControlModes([...controlModes, selectedRightMode])
       setSelectedRightMode(null)
     }
   }
 
   const onClickRemove = () => {
     if (selectedLeftMode) {
-      controlStore.controlModes = controlStore.controlModes.filter(
-        (mode) => !isEqualControlMode(mode, selectedLeftMode),
+      setControlModes(
+        controlModes.filter(
+          (mode) => !isEqualControlMode(mode, selectedLeftMode),
+        ),
       )
       setSelectedLeftMode(null)
     }
@@ -133,15 +136,11 @@ export const ControlSettingDialog = observer(() => {
     if (fromIndex === -1 || toIndex === -1) {
       return
     }
-    controlStore.controlModes = arrayMove(
-      controlStore.controlModes,
-      fromIndex,
-      toIndex,
-    )
+    setControlModes(arrayMove(controlModes, fromIndex, toIndex))
   }
 
   const onClickRestoreDefaults = () => {
-    controlStore.controlModes = defaultControlModes
+    setControlModes(defaultControlModes)
   }
 
   return (
@@ -159,7 +158,7 @@ export const ControlSettingDialog = observer(() => {
               render={(item) => (
                 <Item
                   key={controlModeKey(item.mode)}
-                  isSelected={item.isSelected}
+                  data-selected={item.isSelected}
                   onClick={() => {
                     setSelectedLeftMode(item.mode)
                     setSelectedRightMode(null)
@@ -182,7 +181,7 @@ export const ControlSettingDialog = observer(() => {
             {rightItems.map((item) => (
               <Item
                 key={controlModeKey(item.mode)}
-                isSelected={item.isSelected}
+                data-selected={item.isSelected}
                 onClick={() => {
                   setSelectedLeftMode(null)
                   setSelectedRightMode(item.mode)
@@ -205,4 +204,4 @@ export const ControlSettingDialog = observer(() => {
       </DialogActions>
     </Dialog>
   )
-})
+}

@@ -1,38 +1,36 @@
-import { observer } from "mobx-react-lite"
+import { BatchUpdateOperation } from "@signal-app/core"
 import { useCallback } from "react"
-import {
-  BatchUpdateOperation,
-  batchUpdateSelectedNotesVelocity,
-} from "../../actions"
-import { useStores } from "../../hooks/useStores"
+import { useBatchUpdateSelectedNotesVelocity } from "../../actions"
+import { usePianoRoll } from "../../hooks/usePianoRoll"
 import { VelocityDialog } from "./VelocityDialog"
 
-export const PianoRollVelocityDialog = observer(() => {
-  const rootStore = useStores()
-  const { pianoRollStore } = rootStore
+export const PianoRollVelocityDialog = () => {
+  const { openVelocityDialog, newNoteVelocity, setOpenVelocityDialog } =
+    usePianoRoll()
+  const batchUpdateSelectedNotesVelocity = useBatchUpdateSelectedNotesVelocity()
 
   const onClose = useCallback(
-    () => (pianoRollStore.openVelocityDialog = false),
-    [pianoRollStore],
+    () => setOpenVelocityDialog(false),
+    [setOpenVelocityDialog],
   )
 
   const onClickOK = useCallback(
     (value: number, operationType: BatchUpdateOperation["type"]) => {
-      batchUpdateSelectedNotesVelocity(rootStore)({
+      batchUpdateSelectedNotesVelocity({
         type: operationType,
         value,
       })
-      pianoRollStore.openVelocityDialog = false
+      setOpenVelocityDialog(false)
     },
-    [pianoRollStore],
+    [setOpenVelocityDialog, batchUpdateSelectedNotesVelocity],
   )
 
   return (
     <VelocityDialog
-      open={pianoRollStore.openVelocityDialog}
-      value={pianoRollStore.newNoteVelocity}
+      open={openVelocityDialog}
+      value={newNoteVelocity}
       onClickOK={onClickOK}
       onClose={onClose}
     />
   )
-})
+}

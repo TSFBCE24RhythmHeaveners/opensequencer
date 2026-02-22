@@ -1,9 +1,11 @@
 import styled from "@emotion/styled"
 import { FC } from "react"
-import { ArrangeViewKeyboardShortcut } from "../KeyboardShortcut/ArrangeViewKeyboardShortcut"
+import { ArrangeViewScope } from "../../hooks/useArrangeView"
+import { useArrangeViewKeyboardShortcut } from "../../hooks/useArrangeViewKeyboardShortcut"
+import { useAutoFocus } from "../../hooks/useAutoFocus"
+import { ArrangeToolbar } from "../ArrangeToolbar/ArrangeToolbar"
 import { ArrangeTransposeDialog } from "../TransposeDialog/ArrangeTransposeDialog"
 import { ArrangeVelocityDialog } from "../VelocityDialog/ArrangeVelocityDialog"
-import { ArrangeToolbar } from "./ArrangeToolbar"
 import { ArrangeView } from "./ArrangeView"
 
 const Container = styled.div`
@@ -12,18 +14,29 @@ const Container = styled.div`
   flex-direction: column;
   flex-grow: 1;
   position: relative;
+  outline: none;
 `
 
-export const ArrangeEditor: FC = () => {
+const Content: FC = () => {
+  const keyboardShortcutProps = useArrangeViewKeyboardShortcut()
+  const ref = useAutoFocus<HTMLDivElement>()
+
   return (
     <>
-      <Container>
-        <ArrangeViewKeyboardShortcut />
+      <Container {...keyboardShortcutProps} tabIndex={0} ref={ref}>
         <ArrangeToolbar />
         <ArrangeView />
       </Container>
       <ArrangeTransposeDialog />
       <ArrangeVelocityDialog />
     </>
+  )
+}
+
+export const ArrangeEditor: FC = () => {
+  return (
+    <ArrangeViewScope>
+      <Content />
+    </ArrangeViewScope>
   )
 }

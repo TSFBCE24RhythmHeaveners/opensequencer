@@ -1,13 +1,18 @@
-import RootStore from "../stores/RootStore"
+import { useCallback } from "react"
+import { usePlayer } from "../hooks/usePlayer"
+import { useStores } from "../hooks/useStores"
 
-export const toggleRecording =
-  ({ midiRecorder, player }: RootStore) =>
-  () => {
+export const useToggleRecording = () => {
+  const { midiRecorder } = useStores()
+  const { play, stop } = usePlayer()
+
+  return useCallback(() => {
     if (midiRecorder.isRecording) {
       midiRecorder.isRecording = false
-      player.stop()
+      stop()
     } else {
       midiRecorder.isRecording = true
-      player.play()
+      play()
     }
-  }
+  }, [midiRecorder, play, stop])
+}

@@ -1,169 +1,161 @@
-import { Measure } from "../entities/measure/Measure"
-import { noteOffMidiEvent, noteOnMidiEvent } from "../midi/MidiEvent"
-import RootStore from "../stores/RootStore"
+import { Measure, noteOffMidiEvent, noteOnMidiEvent } from "@signal-app/core"
+import { useCallback } from "react"
+import { usePianoRoll, usePianoRollTickScroll } from "../hooks/usePianoRoll"
+import { usePlayer } from "../hooks/usePlayer"
+import { useSong } from "../hooks/useSong"
+import { useStores } from "../hooks/useStores"
+import { useTrackMute } from "../hooks/useTrackMute"
+import { useToggleGhostTrack } from "./track"
 
-export const playOrPause =
-  ({ player }: RootStore) =>
-  () => {
-    if (player.isPlaying) {
-      player.stop()
-    } else {
-      player.play()
-    }
-  }
+export const useStop = () => {
+  const { setScrollLeftInTicks } = usePianoRollTickScroll()
+  const { stop, setPosition } = usePlayer()
 
-export const stop =
-  ({ player, pianoRollStore }: RootStore) =>
-  () => {
-    player.stop()
-    player.position = 0
-    pianoRollStore.setScrollLeftInTicks(0)
-  }
+  return useCallback(() => {
+    stop()
+    setPosition(0)
+    setScrollLeftInTicks(0)
+  }, [stop, setPosition, setScrollLeftInTicks])
+}
 
-export const rewindOneBar =
-  ({ song, player, pianoRollStore }: RootStore) =>
-  () => {
-    const tick = Measure.getPreviousMeasureTick(
-      song.measures,
-      player.position,
-      song.timebase,
-    )
-    player.position = tick
+export const useRewindOneBar = () => {
+  const { measures, timebase } = useSong()
+  const { scrollLeftTicks, setScrollLeftInTicks } = usePianoRollTickScroll()
+  const { position, setPosition } = usePlayer()
+
+  return useCallback(() => {
+    const tick = Measure.getPreviousMeasureTick(measures, position, timebase)
+    setPosition(tick)
 
     // make sure player doesn't move out of sight to the left
-    if (player.position < pianoRollStore.scrollLeftTicks) {
-      pianoRollStore.setScrollLeftInTicks(player.position)
+    if (position < scrollLeftTicks) {
+      setScrollLeftInTicks(position)
     }
-  }
+  }, [
+    measures,
+    timebase,
+    position,
+    scrollLeftTicks,
+    setPosition,
+    setScrollLeftInTicks,
+  ])
+}
 
-export const fastForwardOneBar =
-  ({ song, player, pianoRollStore }: RootStore) =>
-  () => {
-    const tick = Measure.getNextMeasureTick(
-      song.measures,
-      player.position,
-      song.timebase,
-    )
-    player.position = tick
+export const useFastForwardOneBar = () => {
+  const { transform, scrollLeft, canvasWidth, setScrollLeftInPixels } =
+    usePianoRollTickScroll()
+  const { measures, timebase } = useSong()
+  const { position, setPosition } = usePlayer()
+
+  return useCallback(() => {
+    const tick = Measure.getNextMeasureTick(measures, position, timebase)
+    setPosition(tick)
 
     // make sure player doesn't move out of sight to the right
-    const { transform, scrollLeft } = pianoRollStore
-    const x = transform.getX(player.position)
+    const x = transform.getX(position)
     const screenX = x - scrollLeft
-    if (screenX > pianoRollStore.canvasWidth * 0.7) {
-      pianoRollStore.setScrollLeftInPixels(x - pianoRollStore.canvasWidth * 0.7)
+    if (screenX > canvasWidth * 0.7) {
+      setScrollLeftInPixels(x - canvasWidth * 0.7)
     }
-  }
+  }, [
+    measures,
+    timebase,
+    position,
+    transform,
+    scrollLeft,
+    canvasWidth,
+    setPosition,
+    setScrollLeftInPixels,
+  ])
+}
 
-export const nextTrack =
-  ({ pianoRollStore, song }: RootStore) =>
-  () => {
-    pianoRollStore.selectedTrackIndex = Math.min(
-      pianoRollStore.selectedTrackIndex + 1,
-      song.tracks.length - 1,
-    )
-  }
+export const useNextTrack = () => {
+  const { selectedTrackIndex, setSelectedTrackIndex } = usePianoRoll()
+  const { tracks } = useSong()
 
-export const previousTrack =
-  ({ pianoRollStore }: RootStore) =>
-  () => {
-    pianoRollStore.selectedTrackIndex = Math.max(
-      pianoRollStore.selectedTrackIndex - 1,
-      1,
-    )
-  }
+  return useCallback(() => {
+    setSelectedTrackIndex(Math.min(selectedTrackIndex + 1, tracks.length - 1))
+  }, [selectedTrackIndex, setSelectedTrackIndex, tracks.length])
+}
 
-export const toggleSolo =
-  ({ pianoRollStore: { selectedTrackId }, trackMute }: RootStore) =>
-  () => {
-    if (trackMute.isSolo(selectedTrackId)) {
-      trackMute.unsolo(selectedTrackId)
-    } else {
-      trackMute.solo(selectedTrackId)
-    }
-  }
+export const usePreviousTrack = () => {
+  const { selectedTrackIndex, setSelectedTrackIndex } = usePianoRoll()
 
-export const toggleMute =
-  ({ pianoRollStore: { selectedTrackId }, trackMute }: RootStore) =>
-  () => {
-    if (trackMute.isMuted(selectedTrackId)) {
-      trackMute.unmute(selectedTrackId)
-    } else {
-      trackMute.mute(selectedTrackId)
-    }
-  }
+  return useCallback(() => {
+    setSelectedTrackIndex(Math.max(selectedTrackIndex - 1, 1))
+  }, [selectedTrackIndex, setSelectedTrackIndex])
+}
 
-export const toggleGhost =
-  ({ pianoRollStore: { selectedTrackId }, pianoRollStore }: RootStore) =>
-  () => {
-    if (pianoRollStore.notGhostTrackIds.has(selectedTrackId)) {
-      pianoRollStore.notGhostTrackIds.delete(selectedTrackId)
-    } else {
-      pianoRollStore.notGhostTrackIds.add(selectedTrackId)
-    }
-  }
+export const useToggleSolo = () => {
+  const { toggleSolo } = useTrackMute()
+  const { selectedTrackId } = usePianoRoll()
 
-export const setLoopBegin =
-  ({ player }: RootStore) =>
-  (tick: number) => {
-    player.loop = {
-      end: Math.max(tick, player.loop?.end ?? tick),
-      enabled: player.loop?.enabled ?? false,
-      begin: tick,
-    }
-  }
+  return useCallback(
+    () => toggleSolo(selectedTrackId),
+    [toggleSolo, selectedTrackId],
+  )
+}
 
-export const setLoopEnd =
-  ({ player }: RootStore) =>
-  (tick: number) => {
-    player.loop = {
-      begin: Math.min(tick, player.loop?.begin ?? tick),
-      enabled: player.loop?.enabled ?? false,
-      end: tick,
-    }
-  }
+export const useToggleMute = () => {
+  const { toggleMute } = useTrackMute()
+  const { selectedTrackId } = usePianoRoll()
 
-export const toggleEnableLoop =
-  ({ player }: RootStore) =>
-  () => {
-    if (player.loop === null) {
-      return
-    }
-    player.loop = { ...player.loop, enabled: !player.loop.enabled }
-  }
+  return useCallback(
+    () => toggleMute(selectedTrackId),
+    [toggleMute, selectedTrackId],
+  )
+}
 
-export const startNote =
-  ({ player, synthGroup }: Pick<RootStore, "player" | "synthGroup">) =>
-  (
-    {
-      channel,
-      noteNumber,
-      velocity,
-    }: {
-      noteNumber: number
-      velocity: number
-      channel: number
+export const useToggleGhost = () => {
+  const { selectedTrackId } = usePianoRoll()
+  const toggleGhostTrack = useToggleGhostTrack()
+
+  return useCallback(
+    () => toggleGhostTrack(selectedTrackId),
+    [toggleGhostTrack, selectedTrackId],
+  )
+}
+
+export const useStartNote = () => {
+  const { synthGroup } = useStores()
+  const { sendEvent } = usePlayer()
+
+  return useCallback(
+    (
+      {
+        channel,
+        noteNumber,
+        velocity,
+      }: {
+        noteNumber: number
+        velocity: number
+        channel: number
+      },
+      delayTime = 0,
+    ) => {
+      synthGroup.activate()
+      sendEvent(noteOnMidiEvent(0, channel, noteNumber, velocity), delayTime)
     },
-    delayTime = 0,
-  ) => {
-    synthGroup.activate()
-    player.sendEvent(
-      noteOnMidiEvent(0, channel, noteNumber, velocity),
-      delayTime,
-    )
-  }
+    [synthGroup, sendEvent],
+  )
+}
 
-export const stopNote =
-  ({ player }: Pick<RootStore, "player">) =>
-  (
-    {
-      channel,
-      noteNumber,
-    }: {
-      noteNumber: number
-      channel: number
+export const useStopNote = () => {
+  const { sendEvent } = usePlayer()
+
+  return useCallback(
+    (
+      {
+        channel,
+        noteNumber,
+      }: {
+        noteNumber: number
+        channel: number
+      },
+      delayTime = 0,
+    ) => {
+      sendEvent(noteOffMidiEvent(0, channel, noteNumber, 0), delayTime)
     },
-    delayTime = 0,
-  ) => {
-    player.sendEvent(noteOffMidiEvent(0, channel, noteNumber, 0), delayTime)
-  }
+    [sendEvent],
+  )
+}

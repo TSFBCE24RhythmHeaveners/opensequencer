@@ -2,14 +2,13 @@ import styled from "@emotion/styled"
 import range from "lodash/range"
 import { FC } from "react"
 import { TempoCoordTransform } from "../../entities/transform/TempoCoordTransform"
+import { Positioned } from "../ui/Positioned"
 
-const Container = styled.div`
-  position: absolute;
-  left: 0;
+const Container = styled(Positioned)`
   height: 100%;
-  background: ${({ theme }) => theme.backgroundColor};
+  background: var(--color-background);
   pointer-events: none;
-  border-right: 1px solid ${({ theme }) => theme.dividerColor};
+  border-right: 1px solid var(--color-divider);
   box-shadow: 0px 0px 5px 0 rgba(0, 0, 0, 0.1);
 `
 
@@ -39,14 +38,14 @@ export const TempoGraphAxis: FC<TempoGraphAxisProps> = ({
   offset,
 }) => {
   return (
-    <Container style={{ width, top: offset }}>
+    <Container width={width} top={offset}>
       <Values>
         {range(30, transform.maxBPM, 30).map((t) => {
           const top = Math.round(transform.getY(t))
           return (
-            <div style={{ top }} key={t}>
+            <Positioned top={top} key={t}>
               {t}
-            </div>
+            </Positioned>
           )
         })}
       </Values>

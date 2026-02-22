@@ -2,9 +2,8 @@ import styled from "@emotion/styled"
 import Color from "color"
 import { useToast } from "dialog-hooks"
 import RemoveIcon from "mdi-react/RemoveIcon"
-import { observer } from "mobx-react-lite"
 import { FC, useState } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useSoundFont } from "../../hooks/useSoundFont"
 import { SoundFontFile } from "../../stores/SoundFontStore"
 import { Button } from "../ui/Button"
 import { CircularProgress } from "../ui/CircularProgress"
@@ -26,15 +25,14 @@ const Overlay = styled.div`
   left: 0;
   background-color: ${({ theme }) =>
     Color(theme.backgroundColor).alpha(0.5).toString()};
-  color: ${({ theme }) => theme.textColor};
+  color: var(--color-text);
   width: 100%;
   height: 100%;
   z-index: 1;
 `
 
-export const SoundFontList: FC = observer(() => {
-  const { soundFontStore } = useStores()
-  const { files, selectedSoundFontId } = soundFontStore
+export const SoundFontList: FC = () => {
+  const { files, selectedSoundFontId, load, removeSoundFont } = useSoundFont()
   const [isLoading, setIsLoading] = useState(false)
   const toast = useToast()
 
@@ -48,7 +46,7 @@ export const SoundFontList: FC = observer(() => {
           onClick={async () => {
             setIsLoading(true)
             try {
-              await soundFontStore.load(file.id)
+              await load(file.id)
             } catch (e) {
               toast.error((e as Error).message)
             } finally {
@@ -56,7 +54,7 @@ export const SoundFontList: FC = observer(() => {
             }
           }}
           onClickDelete={async () => {
-            await soundFontStore.removeSoundFont(file.id)
+            await removeSoundFont(file.id)
           }}
         />
       ))}
@@ -67,7 +65,7 @@ export const SoundFontList: FC = observer(() => {
       )}
     </List>
   )
-})
+}
 
 interface SoundFontRowProps {
   item: SoundFontFile
@@ -78,7 +76,7 @@ interface SoundFontRowProps {
 
 const Remove = styled(RemoveIcon)`
   width: 1rem;
-  color: ${({ theme }) => theme.secondaryTextColor};
+  color: var(--color-text-secondary);
 `
 
 const RowWrapper = styled.div`

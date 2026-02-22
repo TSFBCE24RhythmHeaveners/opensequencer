@@ -1,22 +1,35 @@
 import styled from "@emotion/styled"
 import { FC } from "react"
-import { TempoEditorKeyboardShortcut } from "../KeyboardShortcut/TempoEditorKeyboardShortcut"
+import { useAutoFocus } from "../../hooks/useAutoFocus"
+import { TempoEditorScope } from "../../hooks/useTempoEditor"
+import { useTempoEditorKeyboardShortcut } from "../../hooks/useTempoEditorKeyboardShortcut"
+import { TempoGraphToolbar } from "../TempoGraphToolbar/TempoGraphToolbar"
 import { TempoGraph } from "./TempoGraph"
-import { TempoGraphToolbar } from "./TempoGraphToolbar"
 
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   overflow: hidden;
+  outline: none;
 `
 
-export const TempoEditor: FC = () => {
+const Content: FC = () => {
+  const keyboardShortcutProps = useTempoEditorKeyboardShortcut()
+  const ref = useAutoFocus<HTMLDivElement>()
+
   return (
-    <Container>
-      <TempoEditorKeyboardShortcut />
+    <Container {...keyboardShortcutProps} tabIndex={0} ref={ref}>
       <TempoGraphToolbar />
       <TempoGraph />
     </Container>
+  )
+}
+
+export const TempoEditor: FC = () => {
+  return (
+    <TempoEditorScope>
+      <Content />
+    </TempoEditorScope>
   )
 }

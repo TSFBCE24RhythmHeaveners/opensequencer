@@ -1,29 +1,29 @@
 import { DialogTitle } from "@radix-ui/react-dialog"
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useRootView } from "../../hooks/useRootView"
 import { Localized } from "../../localize/useLocalization"
+import { userRepository } from "../../services/repositories"
 import { Dialog, DialogActions, DialogContent } from "../Dialog/Dialog"
 import { Button, PrimaryButton } from "../ui/Button"
 
-export const DeleteAccountDialog: FC = observer(() => {
-  const { rootViewStore, userRepository } = useStores()
+export const DeleteAccountDialog: FC = () => {
+  const { openDeleteAccountDialog, setOpenDeleteAccountDialog } = useRootView()
 
   const onClickCancel = () => {
-    rootViewStore.openDeleteAccountDialog = false
+    setOpenDeleteAccountDialog(false)
   }
 
   const onClickDelete = async () => {
     try {
       await userRepository.delete()
-      rootViewStore.openDeleteAccountDialog = false
+      setOpenDeleteAccountDialog(false)
     } catch (e) {
       alert(`Failed to delete account: ${e}`)
     }
   }
 
   return (
-    <Dialog open={rootViewStore.openDeleteAccountDialog}>
+    <Dialog open={openDeleteAccountDialog}>
       <DialogTitle>
         <Localized name="delete-account" />
       </DialogTitle>
@@ -40,4 +40,4 @@ export const DeleteAccountDialog: FC = observer(() => {
       </DialogActions>
     </Dialog>
   )
-})
+}

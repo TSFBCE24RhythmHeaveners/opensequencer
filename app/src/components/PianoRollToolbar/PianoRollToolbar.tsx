@@ -1,10 +1,7 @@
 import styled from "@emotion/styled"
-import { observer } from "mobx-react-lite"
-import { FC, useCallback } from "react"
-import { useStores } from "../../hooks/useStores"
-import InstrumentBrowser from "../InstrumentBrowser/InstrumentBrowser"
+import type { FC } from "react"
 import { AutoScrollButton } from "../Toolbar/AutoScrollButton"
-import QuantizeSelector from "../Toolbar/QuantizeSelector/QuantizeSelector"
+import { QuantizeSelector } from "../Toolbar/QuantizeSelector/QuantizeSelector"
 import { Toolbar } from "../Toolbar/Toolbar"
 import { TrackListMenuButton } from "../TrackList/TrackListMenuButton"
 import { EventListButton } from "./EventListButton"
@@ -22,37 +19,7 @@ const FlexibleSpacer = styled.div`
   flex-grow: 1;
 `
 
-export const PianoRollToolbar: FC = observer(() => {
-  const { pianoRollStore } = useStores()
-
-  const {
-    quantize,
-    autoScroll,
-    isQuantizeEnabled,
-    selectedTrack,
-    selectedTrackId,
-  } = pianoRollStore
-
-  const onClickAutoScroll = useCallback(
-    () => (pianoRollStore.autoScroll = !pianoRollStore.autoScroll),
-    [pianoRollStore],
-  )
-
-  const onSelectQuantize = useCallback(
-    (denominator: number) => {
-      pianoRollStore.quantize = denominator
-    },
-    [pianoRollStore],
-  )
-
-  const onClickQuantizeSwitch = useCallback(() => {
-    pianoRollStore.isQuantizeEnabled = !pianoRollStore.isQuantizeEnabled
-  }, [pianoRollStore])
-
-  if (selectedTrack === undefined) {
-    return <></>
-  }
-
+export const PianoRollToolbar: FC = () => {
   return (
     <Toolbar>
       <TrackListMenuButton />
@@ -64,23 +31,17 @@ export const PianoRollToolbar: FC = observer(() => {
       <Spacer />
 
       <InstrumentButton />
-      <InstrumentBrowser />
 
-      <VolumeSlider trackId={selectedTrackId} />
-      <PanSlider trackId={selectedTrackId} />
+      <VolumeSlider />
+      <PanSlider />
 
       <FlexibleSpacer />
 
       <PianoRollToolSelector />
 
-      <QuantizeSelector
-        value={quantize}
-        enabled={isQuantizeEnabled}
-        onSelect={onSelectQuantize}
-        onClickSwitch={onClickQuantizeSwitch}
-      />
+      <QuantizeSelector />
 
-      <AutoScrollButton onClick={onClickAutoScroll} selected={autoScroll} />
+      <AutoScrollButton />
     </Toolbar>
   )
-})
+}

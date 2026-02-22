@@ -1,30 +1,34 @@
 import { useTheme } from "@emotion/react"
+import { GLFallback } from "@ryohey/webgl-react"
 import Color from "color"
-import { observer } from "mobx-react-lite"
 import { FC, useMemo } from "react"
 import { Layout } from "../../../Constants"
 import { KeySignature } from "../../../entities/scale/KeySignature"
 import { colorToVec4 } from "../../../gl/color"
-import { useStores } from "../../../hooks/useStores"
+import { useKeyScroll } from "../../../hooks/useKeyScroll"
+import { usePianoRoll } from "../../../hooks/usePianoRoll"
+import { useTickScroll } from "../../../hooks/useTickScroll"
 import { HorizontalGrid } from "./HorizontalGrid"
+import { LegacyLines } from "./lagacy/LegacyLines"
 
 function keySignatureToConditions(keySignature: KeySignature) {
   const intervals = KeySignature.getIntervals(keySignature)
   return new Array(12).fill(false).map((_, i) => intervals.includes(i % 12))
 }
 
-export const Lines: FC<{ zIndex: number }> = observer(({ zIndex }) => {
+export interface LinesProps {
+  zIndex: number
+}
+
+export const Lines: FC<LinesProps> = (props) => {
+  return <GLFallback component={_Lines} fallback={LegacyLines} {...props} />
+}
+
+const _Lines: FC<{ zIndex: number }> = ({ zIndex }) => {
   const theme = useTheme()
-  const rootStore = useStores()
-  const {
-    pianoRollStore: {
-      scrollTop,
-      canvasWidth,
-      canvasHeight,
-      scaleY,
-      keySignature,
-    },
-  } = rootStore
+  const { keySignature } = usePianoRoll()
+  const { canvasWidth } = useTickScroll()
+  const { scrollTop, canvasHeight, scaleY } = useKeyScroll()
 
   const laneColors = useMemo(() => {
     const whiteLaneColor = colorToVec4(
@@ -86,4 +90,4 @@ export const Lines: FC<{ zIndex: number }> = observer(({ zIndex }) => {
       zIndex={zIndex}
     />
   )
-})
+}

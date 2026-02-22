@@ -1,12 +1,12 @@
 export class MIDIInput {
   private devices: WebMidi.MIDIInput[] = []
-  onMessage: ((e: WebMidi.MIDIMessageEvent) => void) | undefined
+  private listeners: ((e: WebMidi.MIDIMessageEvent) => void)[] = []
 
-  removeAllDevices = () => {
+  readonly removeAllDevices = () => {
     this.devices.forEach(this.removeDevice)
   }
 
-  removeDevice = (device: WebMidi.MIDIInput) => {
+  readonly removeDevice = (device: WebMidi.MIDIInput) => {
     device.removeEventListener(
       "midimessage",
       this.onMidiMessage as (e: Event) => void,
@@ -14,12 +14,23 @@ export class MIDIInput {
     this.devices = this.devices.filter((d) => d.id !== device.id)
   }
 
-  addDevice = (device: WebMidi.MIDIInput) => {
+  readonly addDevice = (device: WebMidi.MIDIInput) => {
     device.addEventListener("midimessage", this.onMidiMessage)
     this.devices.push(device)
   }
 
-  onMidiMessage = (e: WebMidi.MIDIMessageEvent) => {
-    this.onMessage?.(e)
+  readonly onMidiMessage = (e: WebMidi.MIDIMessageEvent) => {
+    this.listeners.forEach((callback) => callback(e))
+  }
+
+  on(event: "midiMessage", callback: (e: WebMidi.MIDIMessageEvent) => void) {
+    this.listeners.push(callback)
+    return () => {
+      this.off(event, callback)
+    }
+  }
+
+  off(_event: "midiMessage", callback: (e: WebMidi.MIDIMessageEvent) => void) {
+    this.listeners = this.listeners.filter((cb) => cb !== callback)
   }
 }

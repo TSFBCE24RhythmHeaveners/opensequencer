@@ -3,9 +3,8 @@ import styled from "@emotion/styled"
 import { CloudSong } from "@signal-app/api"
 import { useToast } from "dialog-hooks"
 import DotsHorizontalIcon from "mdi-react/DotsHorizontalIcon"
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useCloudFile } from "../../hooks/useCloudFile"
 import { Localized, useLocalization } from "../../localize/useLocalization"
 import { IconButton } from "../ui/IconButton"
 import { Menu, MenuItem } from "../ui/Menu"
@@ -17,7 +16,7 @@ const Container = styled.div`
   overflow: hidden;
 
   &:hover {
-    background: ${({ theme }) => theme.secondaryBackgroundColor};
+    background: var(--color-background-secondary);
   }
 `
 
@@ -55,60 +54,59 @@ export interface CloudFileRowProps {
   dateType: "created" | "updated"
 }
 
-export const CloudFileRow: FC<CloudFileRowProps> = observer(
-  ({ song, onClick, dateType }) => {
-    const theme = useTheme()
-    const toast = useToast()
-    const localized = useLocalization()
-    const { cloudFileStore } = useStores()
-    const date: Date = (() => {
-      switch (dateType) {
-        case "created":
-          return song.createdAt
-        case "updated":
-          return song.updatedAt
-      }
-    })()
-    const songName =
-      song.name.length > 0 ? song.name : localized["untitled-song"]
-    const dateStr = date.toLocaleDateString() + " " + date.toLocaleTimeString()
-    return (
-      <Container onClick={onClick}>
-        <NameCell>
-          <NoWrapText>{songName}</NoWrapText>
-        </NameCell>
-        <DateCell>{dateStr}</DateCell>
-        <MenuCell>
-          <Menu
-            trigger={
-              <IconButton
-                style={{
-                  marginLeft: "0.2em",
-                }}
-              >
-                <DotsHorizontalIcon
-                  style={{ fill: theme.secondaryTextColor }}
-                />
-              </IconButton>
-            }
-          >
-            <MenuItem
-              onClick={async (e) => {
-                e.stopPropagation()
-                try {
-                  await cloudFileStore.deleteSong(song)
-                  toast.info(localized["song-deleted"])
-                } catch (e) {
-                  console.error(e)
-                  toast.error(localized["song-delete-failed"])
-                }
+export const CloudFileRow: FC<CloudFileRowProps> = ({
+  song,
+  onClick,
+  dateType,
+}) => {
+  const theme = useTheme()
+  const toast = useToast()
+  const localized = useLocalization()
+  const { deleteSong } = useCloudFile()
+  const date: Date = (() => {
+    switch (dateType) {
+      case "created":
+        return song.createdAt
+      case "updated":
+        return song.updatedAt
+    }
+  })()
+  const songName = song.name.length > 0 ? song.name : localized["untitled-song"]
+  const dateStr = date.toLocaleDateString() + " " + date.toLocaleTimeString()
+  return (
+    <Container onClick={onClick}>
+      <NameCell>
+        <NoWrapText>{songName}</NoWrapText>
+      </NameCell>
+      <DateCell>{dateStr}</DateCell>
+      <MenuCell>
+        <Menu
+          trigger={
+            <IconButton
+              style={{
+                marginLeft: "0.2em",
               }}
             >
-              <Localized name="delete" />
-            </MenuItem>
-          </Menu>
-        </MenuCell>
-      </Container>
-    )
-  },
-)
+              <DotsHorizontalIcon style={{ fill: theme.secondaryTextColor }} />
+            </IconButton>
+          }
+        >
+          <MenuItem
+            onClick={async (e) => {
+              e.stopPropagation()
+              try {
+                await deleteSong(song)
+                toast.info(localized["song-deleted"])
+              } catch (e) {
+                console.error(e)
+                toast.error(localized["song-delete-failed"])
+              }
+            }}
+          >
+            <Localized name="delete" />
+          </MenuItem>
+        </Menu>
+      </MenuCell>
+    </Container>
+  )
+}

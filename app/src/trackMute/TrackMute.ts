@@ -1,107 +1,98 @@
-import { makeObservable, observable } from "mobx"
-import { TrackId } from "../track/Track"
-import { ITrackMute } from "./ITrackMute"
-
-function updated<T>(obj: T, key: keyof T, value: any) {
-  return { ...obj, [key]: value }
-}
-
-type BoolMap = { [index: number]: boolean }
+import { TrackId } from "@signal-app/core"
 
 /**
 
-  操作によって二つのモードが切り替わる
+  Two modes are switched by user operations
 
-  ## mute モード
+  ## Mute Mode
 
-  単に mute/unmute でトラックの出力を OFF/ON にする
-  solo とは独立してミュート設定を保持する
+  Simply mute/unmute to turn track output OFF/ON
+  Mute settings are maintained independently from solo
 
-  ## solo モード
+  ## Solo Mode
 
-  何かのトラックを solo にした時にこのモードに遷移する
-  指定トラック以外の全てのトラックを mute するが、
-  追加で他のトラックを solo にしたときは
-  そのトラックの mute を解除する (mute モードのミュート設定とは独立)
+  Transitions to this mode when any track is soloed
+  Mutes all tracks except the specified one, but
+  when additionally soloing other tracks,
+  unmutes those tracks (independent from mute mode settings)
 
-  すべてのトラックの solo が解除された時に
-  mute モードに遷移する
+  Transitions back to mute mode when
+  all tracks' solo states are cleared
 
 */
-export default class TrackMute implements ITrackMute {
-  private mutes: BoolMap = {}
+export interface TrackMute {
+  readonly mutes: { [trackId: TrackId]: boolean }
+  readonly solos: { [trackId: TrackId]: boolean }
+}
 
-  private solos: BoolMap = {}
-
-  constructor() {
-    makeObservable<TrackMute, "mutes" | "solos">(this, {
-      mutes: observable,
-      solos: observable,
-    })
+export namespace TrackMute {
+  export const empty: TrackMute = {
+    mutes: {},
+    solos: {},
   }
 
-  reset() {
-    this.mutes = {}
-    this.solos = {}
-  }
-
-  private _setMute(trackId: TrackId, isMute: boolean) {
-    if (this.isSoloMode()) {
-      return
+  const setMute =
+    (trackId: TrackId, isMute: boolean) =>
+    (trackMute: TrackMute): TrackMute => {
+      if (isSoloMode(trackMute)) {
+        return trackMute // do nothing
+      }
+      return {
+        ...trackMute,
+        mutes: {
+          ...trackMute.mutes,
+          [trackId]: isMute,
+        },
+      }
     }
-    this.mutes = updated(this.mutes, trackId, isMute)
+
+  const getMute = (trackId: TrackId) => (trackMute: TrackMute) => {
+    return trackMute.mutes[trackId] || false
   }
 
-  private _getMute(trackId: TrackId) {
-    return this.mutes[trackId] || false
-  }
-
-  private _setSolo(trackId: TrackId, isSolo: boolean) {
-    this.solos = updated(this.solos, trackId, isSolo)
-  }
-
-  private _getSolo(trackId: TrackId) {
-    return this.solos[trackId] || false
-  }
-
-  mute(trackId: TrackId) {
-    this._setMute(trackId, true)
-  }
-
-  unmute(trackId: TrackId) {
-    this._setMute(trackId, false)
-  }
-
-  solo(trackId: TrackId) {
-    this._setSolo(trackId, true)
-  }
-
-  unsolo(trackId: TrackId) {
-    this._setSolo(trackId, false)
-  }
-
-  isSoloMode(): boolean {
-    // どれかひとつでも solo なら solo モード
-    // Any one or Solo mode Solo mode
-    return Object.values(this.solos).some((s) => s)
-  }
-
-  shouldPlayTrack(trackId: TrackId) {
-    if (this.isSoloMode()) {
-      return this._getSolo(trackId)
-    } else {
-      return !this._getMute(trackId)
+  const setSolo =
+    (trackId: TrackId, isSolo: boolean) =>
+    (trackMute: TrackMute): TrackMute => {
+      return {
+        ...trackMute,
+        solos: {
+          ...trackMute.solos,
+          [trackId]: isSolo,
+        },
+      }
     }
+
+  const getSolo = (trackId: TrackId) => (trackMute: TrackMute) => {
+    return trackMute.solos[trackId] || false
   }
 
-  // 表示用のメソッド
-  // Method for display
-
-  isSolo(trackId: TrackId) {
-    return this.isSoloMode() && this.solos[trackId]
+  export function isSoloMode(trackMute: TrackMute): boolean {
+    // If any track is solo, it's solo mode
+    return Object.values(trackMute.solos).some((s) => s)
   }
 
-  isMuted(trackId: TrackId) {
-    return !this.shouldPlayTrack(trackId)
+  export const isSolo = (trackId: TrackId) => (trackMute: TrackMute) => {
+    return isSoloMode(trackMute) && trackMute.solos[trackId]
   }
+
+  export const isMuted = (trackId: TrackId) => (trackMute: TrackMute) => {
+    return !shouldPlayTrack(trackId)(trackMute)
+  }
+
+  export const mute = (trackId: TrackId) => setMute(trackId, true)
+
+  export const unmute = (trackId: TrackId) => setMute(trackId, false)
+
+  export const solo = (trackId: TrackId) => setSolo(trackId, true)
+
+  export const unsolo = (trackId: TrackId) => setSolo(trackId, false)
+
+  export const shouldPlayTrack =
+    (trackId: TrackId) => (trackMute: TrackMute) => {
+      if (isSoloMode(trackMute)) {
+        return getSolo(trackId)(trackMute)
+      } else {
+        return !getMute(trackId)(trackMute)
+      }
+    }
 }

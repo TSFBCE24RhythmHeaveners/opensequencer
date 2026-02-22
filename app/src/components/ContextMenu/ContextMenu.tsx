@@ -1,13 +1,15 @@
 import styled from "@emotion/styled"
+import { FocusScope } from "@radix-ui/react-focus-scope"
 import * as Portal from "@radix-ui/react-portal"
-import { FC, ReactNode, useEffect } from "react"
+import { FC, ReactNode, useCallback, useEffect } from "react"
 import { Point } from "../../entities/geometry/Point"
+import { Positioned } from "../ui/Positioned"
 
 export const ContextMenuHotKey = styled.div`
   font-size: 0.9em;
   flex-grow: 1;
   text-align: right;
-  color: ${({ theme }) => theme.secondaryTextColor};
+  color: var(--color-text-secondary);
   margin-left: 2em;
 `
 
@@ -19,12 +21,11 @@ const Wrapper = styled.div`
   bottom: 0;
 `
 
-const Content = styled.div`
-  position: absolute;
-  background: ${({ theme }) => theme.secondaryBackgroundColor};
+const Content = styled(Positioned)`
+  background: var(--color-background-secondary);
   border-radius: 0.5rem;
-  box-shadow: 0 1rem 3rem ${({ theme }) => theme.shadowColor};
-  border: 1px solid ${({ theme }) => theme.popupBorderColor};
+  box-shadow: 0 1rem 3rem var(--color-shadow);
+  border: 1px solid var(--color-popup-border);
   padding: 0.5rem 0;
 `
 
@@ -49,6 +50,11 @@ export const ContextMenu: FC<ContextMenuProps> = ({
   position,
   children,
 }) => {
+  const onClickContent = useCallback(
+    (e: React.MouseEvent) => e.stopPropagation(),
+    [],
+  )
+
   // Menu cannot handle keydown while disabling focus, so we deal with global keydown event
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -61,6 +67,7 @@ export const ContextMenu: FC<ContextMenuProps> = ({
     return () => {
       document.removeEventListener("keydown", onKeyDown)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
   if (!isOpen) {
@@ -73,12 +80,11 @@ export const ContextMenu: FC<ContextMenuProps> = ({
   return (
     <Portal.Root>
       <Wrapper onClick={handleClose}>
-        <Content
-          style={{ left: fixedX, top: position.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <List>{children}</List>
-        </Content>
+        <FocusScope>
+          <Content left={fixedX} top={position.y} onClick={onClickContent}>
+            <List>{children}</List>
+          </Content>
+        </FocusScope>
       </Wrapper>
     </Portal.Root>
   )

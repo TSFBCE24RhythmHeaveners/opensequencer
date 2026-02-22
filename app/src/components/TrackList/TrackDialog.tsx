@@ -1,7 +1,8 @@
+import { TrackId } from "@signal-app/core"
 import { range } from "lodash"
 import { FC, useEffect, useState } from "react"
+import { useTrack } from "../../hooks/useTrack"
 import { Localized } from "../../localize/useLocalization"
-import Track from "../../track"
 import {
   Dialog,
   DialogActions,
@@ -15,7 +16,7 @@ import { TextField } from "../ui/TextField"
 import { TrackName } from "./TrackName"
 
 export interface TrackDialogProps {
-  track: Track
+  trackId: TrackId
   open: boolean
   onClose: () => void
 }
@@ -70,32 +71,33 @@ const MIDIInputSelect: FC<{
   )
 }
 
-export const TrackDialog: FC<TrackDialogProps> = ({ track, open, onClose }) => {
-  const [name, setName] = useState(track.name)
-  const [channel, setChannel] = useState(track.channel)
-  const [midiInputChannel, setMIDIInputChannel] = useState(
-    track.inputChannel?.value ?? null,
+export const TrackDialog: FC<TrackDialogProps> = ({
+  trackId,
+  open,
+  onClose,
+}) => {
+  const { name, channel, inputChannel, setName, setChannel, setInputChannel } =
+    useTrack(trackId)
+  const [_name, _setName] = useState(name)
+  const [_channel, _setChannel] = useState(channel)
+  const [_midiInputChannel, _setMIDIInputChannel] = useState(
+    inputChannel?.value ?? null,
   )
 
   useEffect(() => {
-    if (open) {
-      setName(track.name)
-      setChannel(track.channel)
-      setMIDIInputChannel(track.inputChannel?.value ?? null)
+    if (!open) {
+      return
     }
-  }, [open])
-
-  const onClickOK = () => {
-    track.channel = channel
-    track.setName(name ?? "")
-    track.setInputChannel(midiInputChannel)
-    onClose()
-  }
+    _setName(name)
+    _setChannel(channel)
+    _setMIDIInputChannel(inputChannel?.value ?? null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackId, open])
 
   return (
     <Dialog open={open} onOpenChange={onClose} style={{ minWidth: "20rem" }}>
       <DialogTitle>
-        <Localized name="track" />: <TrackName track={track} />
+        <Localized name="track" />: <TrackName trackId={trackId} />
       </DialogTitle>
       <DialogContent
         style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
@@ -104,20 +106,20 @@ export const TrackDialog: FC<TrackDialogProps> = ({ track, open, onClose }) => {
           <Localized name="track-name" />
           <TextField
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value as string)}
+            value={_name}
+            onChange={(e) => _setName(e.target.value as string)}
             style={{ width: "100%" }}
           />
         </Label>
         <Label>
           <Localized name="channel" />
-          <ChannelSelect channel={channel} onChange={setChannel} />
+          <ChannelSelect channel={_channel} onChange={_setChannel} />
         </Label>
         <Label>
           <Localized name="midi-input" />
           <MIDIInputSelect
-            channel={midiInputChannel}
-            onChange={setMIDIInputChannel}
+            channel={_midiInputChannel}
+            onChange={_setMIDIInputChannel}
           />
         </Label>
       </DialogContent>
@@ -125,7 +127,14 @@ export const TrackDialog: FC<TrackDialogProps> = ({ track, open, onClose }) => {
         <Button autoFocus onClick={onClose}>
           <Localized name="cancel" />
         </Button>
-        <PrimaryButton onClick={onClickOK}>
+        <PrimaryButton
+          onClick={() => {
+            setName(_name ?? "")
+            setChannel(_channel)
+            setInputChannel(_midiInputChannel)
+            onClose()
+          }}
+        >
           <Localized name="ok" />
         </PrimaryButton>
       </DialogActions>

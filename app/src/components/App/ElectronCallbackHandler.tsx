@@ -1,3 +1,4 @@
+import { songToMidi } from "@signal-app/core"
 import { useToast } from "dialog-hooks"
 import {
   GithubAuthProvider,
@@ -5,49 +6,69 @@ import {
   OAuthProvider,
   signInWithCredential,
 } from "firebase/auth"
-import { observer } from "mobx-react-lite"
-import { FC, useEffect } from "react"
-import { ElectronAPI } from "../../../../electron/src/ElectronAPI"
+import { FC } from "react"
 import { FirebaseCredential } from "../../../../electron/src/FirebaseCredential"
 import { auth } from "../.././firebase/firebase"
-import { setSong } from "../../actions"
-import { songFromArrayBuffer } from "../../actions/file"
-import { redo, undo } from "../../actions/history"
 import {
-  copySelectionGlobal,
-  cutSelectionGlobal,
-  pasteSelectionGlobal,
+  useDeleteSelection,
+  useDuplicateSelection,
+  useQuantizeSelectedNotes,
+  useSelectAllNotes,
+  useSelectNextNote,
+  useSelectPreviousNote,
+  useSetSong,
+  useTransposeSelection,
+} from "../../actions"
+import { songFromArrayBuffer } from "../../actions/file"
+import {
+  useCopySelectionGlobal,
+  useCutSelectionGlobal,
+  usePasteSelectionGlobal,
 } from "../../actions/hotkey"
+import { useAuth } from "../../hooks/useAuth"
 import { useCloudFile } from "../../hooks/useCloudFile"
+import { useExport } from "../../hooks/useExport"
+import { useHistory } from "../../hooks/useHistory"
+import { usePianoRoll } from "../../hooks/usePianoRoll"
+import { useRootView } from "../../hooks/useRootView"
+import { useSong } from "../../hooks/useSong"
 import { useSongFile } from "../../hooks/useSongFile"
-import { useStores } from "../../hooks/useStores"
 import { useLocalization } from "../../localize/useLocalization"
-import { songToMidi } from "../../midi/midiConversion"
+import { ElectronCallback } from "./ElectronCallback"
 
-declare global {
-  interface Window {
-    electronAPI: ElectronAPI
-  }
-}
-
-export const ElectronCallbackHandler: FC = observer(() => {
-  const rootStore = useStores()
+export const ElectronCallbackHandler: FC = () => {
+  const { isSaved, filepath, getSong, setSaved, setFilepath } = useSong()
+  const { isLoggedIn } = useAuth()
+  const { setOpenSettingDialog, setOpenHelpDialog } = useRootView()
+  const { setOpenTransposeDialog, setOpenVelocityDialog } = usePianoRoll()
   const localized = useLocalization()
   const localSongFile = useSongFile()
   const cloudSongFile = useCloudFile()
   const toast = useToast()
+  const cutSelectionGlobal = useCutSelectionGlobal()
+  const copySelectionGlobal = useCopySelectionGlobal()
+  const pasteSelectionGlobal = usePasteSelectionGlobal()
+  const deleteSelection = useDeleteSelection()
+  const duplicateSelection = useDuplicateSelection()
+  const selectAllNotes = useSelectAllNotes()
+  const selectNextNote = useSelectNextNote()
+  const selectPreviousNote = useSelectPreviousNote()
+  const quantizeSelectedNotes = useQuantizeSelectedNotes()
+  const transposeSelection = useTransposeSelection()
+  const { undo, redo } = useHistory()
+  const setSong = useSetSong()
+  const { exportSong } = useExport()
 
   const saveFileAs = async () => {
-    const { song } = rootStore
     try {
       const res = await window.electronAPI.showSaveDialog()
       if (res === null) {
         return // canceled
       }
       const { path } = res
-      const data = songToMidi(song).buffer
-      song.filepath = path
-      song.isSaved = true
+      const data = songToMidi(getSong()).buffer as ArrayBuffer
+      setFilepath(path)
+      setSaved(true)
       await window.electronAPI.saveFile(path, data)
       window.electronAPI.addRecentDocument(path)
     } catch (e) {
@@ -55,71 +76,56 @@ export const ElectronCallbackHandler: FC = observer(() => {
     }
   }
 
-  useEffect(() => {
-    const unsubscribes = [
-      window.electronAPI.onNewFile(async () => {
-        const {
-          authStore: { isLoggedIn },
-        } = rootStore
-
+  return (
+    <ElectronCallback
+      onNewFile={async () => {
         if (isLoggedIn) {
           await cloudSongFile.createNewSong()
         } else {
           await localSongFile.createNewSong()
         }
-      }),
-      window.electronAPI.onClickOpenFile(async () => {
-        const {
-          authStore: { isLoggedIn },
-        } = rootStore
-
+      }}
+      onClickOpenFile={async () => {
         if (isLoggedIn) {
           await cloudSongFile.openSong()
         } else {
-          const { song } = rootStore
           try {
-            if (song.isSaved || confirm(localized["confirm-open"])) {
+            if (isSaved || confirm(localized["confirm-open"])) {
               const res = await window.electronAPI.showOpenDialog()
               if (res === null) {
                 return // canceled
               }
               const { path, content } = res
               const song = songFromArrayBuffer(content, path)
-              setSong(rootStore)(song)
+              setSong(song)
               window.electronAPI.addRecentDocument(path)
             }
           } catch (e) {
             alert((e as Error).message)
           }
         }
-      }),
-      window.electronAPI.onOpenFile(async ({ filePath }) => {
-        const { song } = rootStore
+      }}
+      onOpenFile={async ({ filePath }) => {
         try {
-          if (song.isSaved || confirm(localized["confirm-open"])) {
+          if (isSaved || confirm(localized["confirm-open"])) {
             const data = await window.electronAPI.readFile(filePath)
             const song = songFromArrayBuffer(data, filePath)
-            setSong(rootStore)(song)
+            setSong(song)
             window.electronAPI.addRecentDocument(filePath)
           }
         } catch (e) {
           alert((e as Error).message)
         }
-      }),
-      window.electronAPI.onSaveFile(async () => {
-        const {
-          song,
-          authStore: { isLoggedIn },
-        } = rootStore
-
+      }}
+      onSaveFile={async () => {
         if (isLoggedIn) {
           await cloudSongFile.saveSong()
         } else {
           try {
-            if (song.filepath) {
-              const data = songToMidi(rootStore.song).buffer
-              await window.electronAPI.saveFile(song.filepath, data)
-              song.isSaved = true
+            if (filepath) {
+              const data = songToMidi(getSong()).buffer as ArrayBuffer
+              await window.electronAPI.saveFile(filepath, data)
+              setSaved(true)
             } else {
               await saveFileAs()
             }
@@ -127,67 +133,62 @@ export const ElectronCallbackHandler: FC = observer(() => {
             alert((e as Error).message)
           }
         }
-      }),
-      window.electronAPI.onSaveFileAs(async () => {
-        const {
-          authStore: { isLoggedIn },
-        } = rootStore
-
+      }}
+      onSaveFileAs={async () => {
         if (isLoggedIn) {
           await cloudSongFile.saveAsSong()
         } else {
           await saveFileAs()
         }
-      }),
-      window.electronAPI.onRename(async () => {
+      }}
+      onRename={async () => {
         await cloudSongFile.renameSong()
-      }),
-      window.electronAPI.onImport(async () => {
+      }}
+      onImport={async () => {
         await cloudSongFile.importSong()
-      }),
-      window.electronAPI.onExportWav(() => {
-        rootStore.exportStore.openExportDialog = true
-      }),
-      window.electronAPI.onUndo(() => {
-        undo(rootStore)()
-      }),
-      window.electronAPI.onRedo(() => {
-        redo(rootStore)()
-      }),
-      window.electronAPI.onCut(() => {
-        cutSelectionGlobal(rootStore)()
-      }),
-      window.electronAPI.onCopy(() => {
-        copySelectionGlobal(rootStore)()
-      }),
-      window.electronAPI.onPaste(() => {
-        pasteSelectionGlobal(rootStore)()
-      }),
-      window.electronAPI.onOpenSetting(() => {
-        rootStore.rootViewStore.openSettingDialog = true
-      }),
-      window.electronAPI.onOpenHelp(() => {
-        rootStore.rootViewStore.openHelp = true
-      }),
-      window.electronAPI.onBrowserSignInCompleted(
-        async ({ credential: credentialJSON }) => {
-          const credential = createCredential(credentialJSON)
-          try {
-            await signInWithCredential(auth, credential)
-          } catch (e) {
-            toast.error("Failed to sign in")
-          }
-        },
-      ),
-    ]
-    window.electronAPI.ready()
-    return () => {
-      unsubscribes.forEach((unsubscribe) => unsubscribe())
-    }
-  }, [])
-
-  return <></>
-})
+      }}
+      onExportWav={() => {
+        exportSong("WAV")
+      }}
+      onExportMp3={() => {
+        exportSong("MP3")
+      }}
+      onUndo={undo}
+      onRedo={redo}
+      onCut={cutSelectionGlobal}
+      onCopy={copySelectionGlobal}
+      onPaste={pasteSelectionGlobal}
+      onDuplicate={duplicateSelection}
+      onDelete={deleteSelection}
+      onSelectAll={selectAllNotes}
+      onSelectNextNote={selectNextNote}
+      onSelectPreviousNote={selectPreviousNote}
+      onTransposeUpOctave={() => transposeSelection(12)}
+      onTransposeDownOctave={() => transposeSelection(-12)}
+      onTranspose={() => {
+        setOpenTransposeDialog(true)
+      }}
+      onQuantize={quantizeSelectedNotes}
+      onVelocity={() => {
+        setOpenVelocityDialog(true)
+      }}
+      onOpenSetting={() => {
+        setOpenSettingDialog(true)
+      }}
+      onOpenHelp={() => {
+        setOpenHelpDialog(true)
+      }}
+      onBrowserSignInCompleted={async ({ credential: credentialJSON }) => {
+        const credential = createCredential(credentialJSON)
+        try {
+          await signInWithCredential(auth, credential)
+        } catch {
+          toast.error("Failed to sign in")
+        }
+      }}
+    />
+  )
+}
 
 function createCredential(credential: FirebaseCredential) {
   switch (credential.providerId) {
@@ -198,12 +199,13 @@ function createCredential(credential: FirebaseCredential) {
       )
     case "github.com":
       return GithubAuthProvider.credential(credential.accessToken)
-    case "apple.com":
-      let provider = new OAuthProvider("apple.com")
+    case "apple.com": {
+      const provider = new OAuthProvider("apple.com")
       return provider.credential({
         idToken: credential.idToken,
         accessToken: credential.accessToken,
       })
+    }
     default:
       throw new Error("Invalid provider")
   }

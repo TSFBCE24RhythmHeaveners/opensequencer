@@ -1,8 +1,8 @@
 import styled from "@emotion/styled"
 import { DEFAULT_TEMPO } from "@signal-app/player"
-import { observer } from "mobx-react-lite"
 import { FC } from "react"
-import { useStores } from "../../hooks/useStores"
+import { useConductorTrack } from "../../hooks/useConductorTrack"
+import { usePlayer } from "../../hooks/usePlayer"
 import { NumberInput } from "../inputs/NumberInput"
 
 const TempoInput = styled(NumberInput)`
@@ -15,7 +15,7 @@ const TempoInput = styled(NumberInput)`
   width: 5em;
   text-align: center;
   outline: none;
-  font-family: ${({ theme }) => theme.monoFont};
+  font-family: var(--font-mono);
   font-size: 1rem;
   padding: 0.3rem 0;
 
@@ -34,26 +34,23 @@ const TempoWrapper = styled.div`
 
   label {
     font-size: 0.6rem;
-    color: ${({ theme }) => theme.secondaryTextColor};
+    color: var(--color-text-secondary);
   }
 
   &:focus-within {
-    border: 1px solid ${({ theme }) => theme.dividerColor};
+    border: 1px solid var(--color-divider);
     background: #ffffff14;
   }
 `
 
-export const TempoForm: FC = observer(() => {
-  const {
-    song,
-    pianoRollStore: { currentTempo },
-    player,
-  } = useStores()
+export const TempoForm: FC = () => {
+  const { position, setCurrentTempo } = usePlayer()
+  const { currentTempo, setTempo } = useConductorTrack()
   const tempo = currentTempo ?? DEFAULT_TEMPO
 
   const changeTempo = (tempo: number) => {
-    song.conductorTrack?.setTempo(tempo, player.position)
-    player.currentTempo = tempo
+    setTempo(tempo, position)
+    setCurrentTempo(tempo)
   }
 
   return (
@@ -69,4 +66,4 @@ export const TempoForm: FC = observer(() => {
       />
     </TempoWrapper>
   )
-})
+}

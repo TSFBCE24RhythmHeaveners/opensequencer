@@ -1,22 +1,21 @@
 import styled from "@emotion/styled"
-import useComponentSize from "@rehooks/component-size"
-import { observer } from "mobx-react-lite"
-import React, { FC, useCallback, useMemo, useRef } from "react"
-import { FixedSizeList, ListChildComponentProps } from "react-window"
-import { Layout } from "../../Constants"
-import { useStores } from "../../hooks/useStores"
+import { TrackEvent } from "@signal-app/core"
+import { FC } from "react"
+import { List, type RowComponentProps } from "react-window"
+import { useEventList } from "../../hooks/useEventList"
 import { Localized } from "../../localize/useLocalization"
-import { TrackEvent } from "../../track"
 import { EventListItem } from "./EventListItem"
 
 const Container = styled.div`
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
 `
 
 const Header = styled.div`
-  height: ${Layout.rulerHeight};
-  border-bottom: 1px solid ${({ theme }) => theme.dividerColor};
+  height: var(--size-ruler-height);
+  border-bottom: 1px solid var(--color-divider);
   /* scroll bar width */
   padding-right: 14px;
 `
@@ -27,7 +26,7 @@ export const Row = styled.div`
   grid-template-columns: 5em 1fr 5em 5em;
 
   &:focus {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
   }
 `
 
@@ -35,29 +34,15 @@ export const Cell = styled.div`
   padding: 0.5rem;
 
   &:focus-within {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
   }
 `
 
-const EventList: FC = observer(() => {
-  const rootStore = useStores()
-  const {
-    pianoRollStore: { selectedTrack, selectedNoteIds: selectedEventIds = [] },
-  } = rootStore
-
-  const events = useMemo(() => {
-    const { events = [] } = selectedTrack || {}
-    if (selectedEventIds.length > 0) {
-      return events.filter((event) => selectedEventIds.indexOf(event.id) >= 0)
-    }
-    return events
-  }, [selectedTrack?.events, selectedEventIds])
-
-  const ref = useRef<HTMLDivElement>(null)
-  const size = useComponentSize(ref)
+const EventList: FC = () => {
+  const { events } = useEventList()
 
   return (
-    <Container ref={ref}>
+    <Container>
       <Header>
         <Row>
           <Cell>
@@ -74,35 +59,23 @@ const EventList: FC = observer(() => {
           </Cell>
         </Row>
       </Header>
-      <FixedSizeList
-        height={size.height - Layout.rulerHeight}
-        itemCount={events.length}
-        itemSize={35}
-        width={size.width}
-        itemData={{ events }}
-        itemKey={(index) => events[index].id}
-      >
-        {ItemRenderer}
-      </FixedSizeList>
+      <List
+        rowComponent={ItemRenderer}
+        rowCount={events.length}
+        rowHeight={35}
+        rowProps={{ events }}
+      />
     </Container>
   )
-})
+}
 
-const ItemRenderer = ({ index, style, data }: ListChildComponentProps) => {
-  const { events, selectedEventIds = [], setSelectedEventIds } = data
+const ItemRenderer = ({
+  index,
+  style,
+  events,
+}: RowComponentProps<{ events: readonly TrackEvent[] }>) => {
   const e = events[index]
-
-  const onClickRow = useCallback((e: React.MouseEvent, ev: TrackEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      setSelectedEventIds?.((ids: number[]) => [...ids, ev.id])
-    } else {
-      setSelectedEventIds?.([ev.id])
-    }
-  }, [])
-
-  return (
-    <EventListItem style={style} item={e} key={e.id} onClick={onClickRow} />
-  )
+  return <EventListItem style={style} item={e} key={e.id} />
 }
 
 export default EventList

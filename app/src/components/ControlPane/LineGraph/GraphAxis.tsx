@@ -1,10 +1,8 @@
 import styled from "@emotion/styled"
 import React, { FC } from "react"
-import { Layout } from "../../../Constants"
 
 const Parent = styled.div`
   text-align: right;
-  width: ${Layout.keyWidth}px;
   padding-right: 0.3em;
   box-sizing: border-box;
 `
@@ -20,24 +18,30 @@ const Values = styled.div`
 const Value = styled.div`
   padding: 0.3em;
   font-size: 90%;
-  color: ${({ theme }) => theme.secondaryTextColor};
+  color: var(--color-text-secondary);
 
   &:hover {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
     cursor: default;
   }
 `
 
 export interface GraphAxisProps {
+  width: number
   values: number[]
   valueFormatter?: (value: number) => string
   onClick: (value: number) => void
 }
 
 export const GraphAxis: FC<GraphAxisProps> = React.memo(
-  ({ values, valueFormatter = (v: number) => v.toString(), onClick }) => {
+  ({
+    width,
+    values,
+    valueFormatter = (v: number) => v.toString(),
+    onClick,
+  }) => {
     return (
-      <Parent>
+      <Parent style={{ width }}>
         <Values>
           {values
             .slice()

@@ -1,7 +1,7 @@
-import { GLNode, useProjectionMatrix } from "@ryohey/webgl-react"
+import { GLNode, useTransform } from "@ryohey/webgl-react"
 import { vec4 } from "gl-matrix"
 import { FC } from "react"
-import { VerticalLinesBuffer, VerticalLinesShader } from "./VerticalLinesShader"
+import { VerticalLinesShader } from "./VerticalLinesShader"
 
 export interface VerticalLinesProps {
   xArray: number[]
@@ -18,12 +18,11 @@ export const VerticalLines: FC<VerticalLinesProps> = ({
   lineWidth,
   zIndex,
 }) => {
-  const projectionMatrix = useProjectionMatrix()
+  const projectionMatrix = useTransform()
 
   return (
     <GLNode
-      createShader={VerticalLinesShader}
-      createBuffer={(gl) => new VerticalLinesBuffer(gl)}
+      shader={VerticalLinesShader}
       uniforms={{
         projectionMatrix,
         color,

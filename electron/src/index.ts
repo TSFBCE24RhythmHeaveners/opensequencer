@@ -49,11 +49,22 @@ function updateMainMenu(isLoggedIn: boolean) {
       onClickRename: () => ipc.send("onRename"),
       onClickImport: () => ipc.send("onImport"),
       onClickExportWav: () => ipc.send("onExportWav"),
+      onClickExportMp3: () => ipc.send("onExportMp3"),
       onClickUndo: () => ipc.send("onUndo"),
       onClickRedo: () => ipc.send("onRedo"),
       onClickCut: () => ipc.send("onCut"),
       onClickCopy: () => ipc.send("onCopy"),
       onClickPaste: () => ipc.send("onPaste"),
+      onClickDuplicate: () => ipc.send("onDuplicate"),
+      onClickDelete: () => ipc.send("onDelete"),
+      onClickSelectAll: () => ipc.send("onSelectAll"),
+      onClickSelectNextNote: () => ipc.send("onSelectNextNote"),
+      onClickSelectPreviousNote: () => ipc.send("onSelectPreviousNote"),
+      onClickTransposeUpOctave: () => ipc.send("onTransposeUpOctave"),
+      onClickTransposeDownOctave: () => ipc.send("onTransposeDownOctave"),
+      onClickTranspose: () => ipc.send("onTranspose"),
+      onClickQuantize: () => ipc.send("onQuantize"),
+      onClickVelocity: () => ipc.send("onVelocity"),
       onClickSetting: () => ipc.send("onOpenSetting"),
       onClickHelp: () => ipc.send("onOpenHelp"),
       onClickSupport: () => openSupportPage(),
@@ -208,7 +219,7 @@ app.on("browser-window-focus", (_event, window) => {
 })
 
 function openSupportPage() {
-  shell.openExternal("https://signal.vercel.app/support")
+  shell.openExternal("https://signalmidi.app/support")
 }
 
 log.info("electron:event:app-ready")

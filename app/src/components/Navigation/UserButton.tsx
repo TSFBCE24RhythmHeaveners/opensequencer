@@ -1,19 +1,16 @@
 import { useTheme } from "@emotion/react"
 import AccountCircle from "mdi-react/AccountCircleIcon"
-import { observer } from "mobx-react-lite"
 import { FC, useRef, useState } from "react"
-import { auth } from "../.././firebase/firebase"
 import { isRunningInElectron } from "../../helpers/platform"
-import { useStores } from "../../hooks/useStores"
+import { useAuth } from "../../hooks/useAuth"
+import { useRootView } from "../../hooks/useRootView"
 import { Localized } from "../../localize/useLocalization"
 import { Menu, MenuItem } from "../ui/Menu"
 import { IconStyle, Tab, TabTitle } from "./Navigation"
 
-export const UserButton: FC = observer(() => {
-  const {
-    rootViewStore,
-    authStore: { authUser: user },
-  } = useStores()
+export const UserButton: FC = () => {
+  const { authUser: user, signOut } = useAuth()
+  const { setOpenSignInDialog, setOpenUserSettingsDialog } = useRootView()
 
   const [open, setOpen] = useState(false)
 
@@ -21,30 +18,25 @@ export const UserButton: FC = observer(() => {
     if (isRunningInElectron()) {
       window.electronAPI.openAuthWindow()
     } else {
-      rootViewStore.openSignInDialog = true
+      setOpenSignInDialog(true)
     }
     setOpen(false)
   }
 
   const onClickSignOut = async () => {
-    await auth.signOut()
+    await signOut()
     setOpen(false)
   }
 
   const onClickProfile = () => {
     if (user !== null) {
-      window.open(`https://signal.vercel.app/users/${user.uid}`)
+      window.open(`https://signalmidi.app/users/${user.uid}`)
     }
     setOpen(false)
   }
 
-  const onClickFiles = () => {
-    rootViewStore.openCloudFileDialog = true
-    setOpen(false)
-  }
-
   const onClickUserSettings = () => {
-    rootViewStore.openUserSettingsDialog = true
+    setOpenUserSettingsDialog(true)
   }
 
   const theme = useTheme()
@@ -92,4 +84,4 @@ export const UserButton: FC = observer(() => {
       </MenuItem>
     </Menu>
   )
-})
+}

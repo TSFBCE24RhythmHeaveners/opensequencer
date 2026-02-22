@@ -1,9 +1,7 @@
 import styled from "@emotion/styled"
 import Add from "mdi-react/AddIcon"
-import { observer } from "mobx-react-lite"
-import { FC, useCallback } from "react"
-import { addTrack } from "../../actions"
-import { useStores } from "../../hooks/useStores"
+import { FC } from "react"
+import { useAddTrack } from "../../actions"
 import { Localized } from "../../localize/useLocalization"
 
 const Wrapper = styled.div`
@@ -11,12 +9,12 @@ const Wrapper = styled.div`
   padding: 0.5rem 1rem;
   align-items: center;
   justify-content: center;
-  color: ${({ theme }) => theme.secondaryTextColor};
+  color: var(--color-text-secondary);
   border-radius: 0.5rem;
   margin: 0.5rem;
 
   &:hover {
-    background: ${({ theme }) => theme.highlightColor};
+    background: var(--color-highlight);
   }
 `
 
@@ -30,17 +28,15 @@ const Label = styled.div`
   font-size: 0.875rem;
 `
 
-export const AddTrackButton: FC = observer(() => {
-  const rootStore = useStores()
-
-  const onClickAddTrack = useCallback(() => addTrack(rootStore)(), [])
+export const AddTrackButton: FC = () => {
+  const addTrack = useAddTrack()
 
   return (
-    <Wrapper onClick={onClickAddTrack}>
+    <Wrapper onClick={addTrack}>
       <AddIcon />
       <Label>
         <Localized name="add-track" />
       </Label>
     </Wrapper>
   )
-})
+}

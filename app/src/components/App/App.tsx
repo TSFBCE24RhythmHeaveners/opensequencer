@@ -8,12 +8,16 @@ import React from "react"
 import { HelmetProvider } from "react-helmet-async"
 import { ActionDialog } from "../../components/Dialog/ActionDialog"
 import { isRunningInElectron } from "../../helpers/platform"
+import { ArrangeViewProvider } from "../../hooks/useArrangeView"
+import { AuthProvider } from "../../hooks/useAuth"
+import { PianoRollProvider } from "../../hooks/usePianoRoll"
 import { StoreContext } from "../../hooks/useStores"
+import { TempoEditorProvider } from "../../hooks/useTempoEditor"
+import { TrackMuteProvider } from "../../hooks/useTrackMute"
 import RootStore from "../../stores/RootStore"
 import { ThemeProvider } from "../../theme/ThemeProvider"
 import { ProgressDialog } from "../Dialog/ProgressDialog"
 import { PromptDialog } from "../Dialog/PromptDialog"
-import { GlobalKeyboardShortcut } from "../KeyboardShortcut/GlobalKeyboardShortcut"
 import { RootView } from "../RootView/RootView"
 import { GlobalCSS } from "../Theme/GlobalCSS"
 import { Toast } from "../ui/Toast"
@@ -33,10 +37,21 @@ export function App() {
                 <DialogProvider component={ActionDialog}>
                   <ProgressProvider component={ProgressDialog}>
                     <LocalizationProvider>
-                      <GlobalKeyboardShortcut />
-                      <GlobalCSS />
-                      {isRunningInElectron() && <ElectronCallbackHandler />}
-                      <RootView />
+                      <AuthProvider>
+                        <TrackMuteProvider>
+                          <PianoRollProvider>
+                            <ArrangeViewProvider>
+                              <TempoEditorProvider>
+                                <GlobalCSS />
+                                {isRunningInElectron() && (
+                                  <ElectronCallbackHandler />
+                                )}
+                                <RootView />
+                              </TempoEditorProvider>
+                            </ArrangeViewProvider>
+                          </PianoRollProvider>
+                        </TrackMuteProvider>
+                      </AuthProvider>
                     </LocalizationProvider>
                   </ProgressProvider>
                 </DialogProvider>

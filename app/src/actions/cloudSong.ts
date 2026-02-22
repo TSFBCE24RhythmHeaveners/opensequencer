@@ -1,12 +1,16 @@
-import { CloudSong, User } from "@signal-app/api"
+import { CloudSong } from "@signal-app/api"
+import { Song, songFromMidi, songToMidi } from "@signal-app/core"
 import { basename } from "../helpers/path"
-import { songFromMidi, songToMidi } from "../midi/midiConversion"
-import Song from "../song"
-import RootStore from "../stores/RootStore"
+import { useAutoSave } from "../hooks/useAutoSave"
+import {
+  cloudMidiRepository,
+  cloudSongDataRepository,
+  cloudSongRepository,
+  userRepository,
+} from "../services/repositories"
 
-export const loadSong =
-  ({ cloudSongDataRepository }: RootStore) =>
-  async (cloudSong: CloudSong) => {
+export const useLoadSong = () => {
+  return async (cloudSong: CloudSong) => {
     const songData = await cloudSongDataRepository.get(cloudSong.songDataId)
     const song = songFromMidi(songData)
     song.name = cloudSong.name
@@ -15,10 +19,12 @@ export const loadSong =
     song.isSaved = true
     return song
   }
+}
 
-export const createSong =
-  ({ cloudSongRepository, cloudSongDataRepository }: RootStore) =>
-  async (song: Song) => {
+export const useCreateSong = () => {
+  const { onUserExplicitAction } = useAutoSave()
+
+  return async (song: Song) => {
     const bytes = songToMidi(song)
     const songDataId = await cloudSongDataRepository.create({ data: bytes })
     const songId = await cloudSongRepository.create({
@@ -29,11 +35,14 @@ export const createSong =
     song.cloudSongDataId = songDataId
     song.cloudSongId = songId
     song.isSaved = true
+    onUserExplicitAction()
   }
+}
 
-export const updateSong =
-  ({ cloudSongRepository, cloudSongDataRepository }: RootStore) =>
-  async (song: Song) => {
+export const useUpdateSong = () => {
+  const { onUserExplicitAction } = useAutoSave()
+
+  return async (song: Song) => {
     if (song.cloudSongId === null || song.cloudSongDataId === null) {
       throw new Error("This song is not loaded from the cloud")
     }
@@ -49,18 +58,19 @@ export const updateSong =
     })
 
     song.isSaved = true
+    onUserExplicitAction()
   }
+}
 
-export const deleteSong =
-  ({ cloudSongRepository, cloudSongDataRepository }: RootStore) =>
-  async (song: CloudSong) => {
+export const useDeleteSong = () => {
+  return async (song: CloudSong) => {
     await cloudSongDataRepository.delete(song.songDataId)
     await cloudSongRepository.delete(song.id)
   }
+}
 
-export const loadSongFromExternalMidiFile =
-  ({ cloudMidiRepository }: RootStore) =>
-  async (midiFileUrl: string) => {
+export const useLoadSongFromExternalMidiFile = () => {
+  return async (midiFileUrl: string) => {
     const id = await cloudMidiRepository.storeMidiFile(midiFileUrl)
     const data = await cloudMidiRepository.get(id)
     const song = songFromMidi(data)
@@ -68,23 +78,28 @@ export const loadSongFromExternalMidiFile =
     song.isSaved = true
     return song
   }
+}
 
-export const publishSong =
-  ({ cloudSongRepository, cloudSongDataRepository }: RootStore) =>
-  async (song: Song, user: User) => {
+export const usePublishSong = () => {
+  return async (song: Song) => {
+    const user = await userRepository.getCurrentUser()
+    if (user === null) {
+      throw new Error("Failed to get current user, please re-sign in")
+    }
     if (song.cloudSongId === null || song.cloudSongDataId === null) {
       throw new Error("This song is not saved in the cloud")
     }
     await cloudSongDataRepository.publish(song.cloudSongDataId)
     await cloudSongRepository.publish(song.cloudSongId, user)
   }
+}
 
-export const unpublishSong =
-  ({ cloudSongRepository, cloudSongDataRepository }: RootStore) =>
-  async (song: Song) => {
+export const useUnpublishSong = () => {
+  return async (song: Song) => {
     if (song.cloudSongId === null || song.cloudSongDataId === null) {
       throw new Error("This song is not loaded from the cloud")
     }
     await cloudSongDataRepository.unpublish(song.cloudSongDataId)
     await cloudSongRepository.unpublish(song.cloudSongId)
   }
+}
