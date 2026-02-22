@@ -3,7 +3,10 @@ import type { TrackEventOf } from "@signal-app/core"
 import type { ProgramChangeEvent } from "midifile-ts"
 import { type FC, useCallback, useMemo, useState } from "react"
 import type { TickTransform } from "../../entities/transform/TickTransform"
+import { observeDrag2 } from "../../helpers/observeDrag"
+import { useHistory } from "../../hooks/useHistory"
 import { usePianoRoll } from "../../hooks/usePianoRoll"
+import { useQuantizer } from "../../hooks/useQuantizer"
 import { useTrack } from "../../hooks/useTrack"
 import { InstrumentBrowser } from "../InstrumentBrowser/InstrumentBrowser"
 import { InstrumentEmoji, InstrumentName } from "../TrackList/InstrumentName"
@@ -17,15 +20,14 @@ const Container = styled.div`
   border-radius: 0 4px 4px 0;
   margin: 0.2em 0 0 0;
   box-shadow: 1px 1px 3px 0 rgba(0, 0, 0, 0.02);
-  transition: all 0.1s ease;
+  transition: opacity 0.1s ease;
   opacity: 0.5;
   max-width: 7rem;
   overflow: hidden;
+  cursor: grab;
 
   &:hover {
     opacity: 1;
-    transform: scale(1.05);
-    border-radius: 4px;
   }
 `
 
@@ -40,9 +42,11 @@ export const InstrumentMark: FC<{
   }, [transform, event.tick])
   const [isOpenInstrumentBrowser, setIsOpenInstrumentBrowser] = useState(false)
   const { selectedTrackId } = usePianoRoll()
-  const { removeEvent } = useTrack(selectedTrackId)
+  const { removeEvent, updateEvent } = useTrack(selectedTrackId)
+  const { pushHistory } = useHistory()
+  const { quantizeRound } = useQuantizer()
 
-  const handleClick = useCallback(() => {
+  const handleDoubleClick = useCallback(() => {
     setIsOpenInstrumentBrowser(true)
   }, [])
 
@@ -54,9 +58,37 @@ export const InstrumentMark: FC<{
     [event.id, removeEvent],
   )
 
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button !== 0) return
+      e.stopPropagation()
+
+      const startTick = event.tick
+      let isChanged = false
+
+      observeDrag2(e.nativeEvent, {
+        onMouseMove: (_e, delta) => {
+          if (!isChanged) {
+            isChanged = true
+            pushHistory()
+          }
+          const deltaTick = transform.getTick(delta.x)
+          const newTick = Math.max(0, quantizeRound(startTick + deltaTick))
+          updateEvent(event.id, { tick: newTick })
+        },
+      })
+    },
+    [event.id, event.tick, transform, updateEvent, pushHistory, quantizeRound],
+  )
+
   return (
     <>
-      <Container style={style} onClick={handleClick} onContextMenu={handleContextMenu}>
+      <Container
+        style={style}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        onContextMenu={handleContextMenu}
+      >
         <InstrumentEmoji programNumber={event.value} isRhythmTrack={false} />{" "}
         <InstrumentName programNumber={event.value} isRhythmTrack={false} />
       </Container>
