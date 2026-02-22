@@ -206,7 +206,7 @@ export const InstrumentBrowser: FC<InstrumentBrowserProps> = ({
             onClick={handleClickOK}
             actions={[
               {
-                label: "Insert",
+                label: <Localized name="insert" />,
                 onClick: handleClickInsert,
               },
             ]}
