@@ -60,6 +60,7 @@ export const InstrumentBrowser: FC<InstrumentBrowserProps> = ({
     programNumber: initialProgramNumber,
     isRhythmTrack: initialIsRhythmTrack,
     getEventById,
+    removeEvent,
   } = useTrack(trackId)
   const [setting, setSetting] = useState({
     programNumber: initialProgramNumber ?? 0,
@@ -143,6 +144,13 @@ export const InstrumentBrowser: FC<InstrumentBrowserProps> = ({
     onOpenChange(false)
   }, [onOpenChange, insertInstrumentChangeAtCurrentPosition, programNumber])
 
+  const handleClickDelete = useCallback(() => {
+    if (targetEventId !== undefined) {
+      removeEvent(targetEventId)
+    }
+    onOpenChange(false)
+  }, [targetEventId, removeEvent, onOpenChange])
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="InstrumentBrowser">
@@ -177,6 +185,14 @@ export const InstrumentBrowser: FC<InstrumentBrowserProps> = ({
         </Footer>
       </DialogContent>
       <DialogActions>
+        {targetEventId !== undefined && (
+          <Button
+            onClick={handleClickDelete}
+            style={{ marginRight: "auto" }}
+          >
+            <Localized name="delete" />
+          </Button>
+        )}
         <Button onClick={() => onOpenChange(false)}>
           <Localized name="cancel" />
         </Button>

@@ -4,6 +4,7 @@ import type { ProgramChangeEvent } from "midifile-ts"
 import { type FC, useCallback, useMemo, useState } from "react"
 import type { TickTransform } from "../../entities/transform/TickTransform"
 import { usePianoRoll } from "../../hooks/usePianoRoll"
+import { useTrack } from "../../hooks/useTrack"
 import { InstrumentBrowser } from "../InstrumentBrowser/InstrumentBrowser"
 import { InstrumentEmoji, InstrumentName } from "../TrackList/InstrumentName"
 
@@ -39,14 +40,23 @@ export const InstrumentMark: FC<{
   }, [transform, event.tick])
   const [isOpenInstrumentBrowser, setIsOpenInstrumentBrowser] = useState(false)
   const { selectedTrackId } = usePianoRoll()
+  const { removeEvent } = useTrack(selectedTrackId)
 
   const handleClick = useCallback(() => {
     setIsOpenInstrumentBrowser(true)
   }, [])
 
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      removeEvent(event.id)
+    },
+    [event.id, removeEvent],
+  )
+
   return (
     <>
-      <Container style={style} onClick={handleClick}>
+      <Container style={style} onClick={handleClick} onContextMenu={handleContextMenu}>
         <InstrumentEmoji programNumber={event.value} isRhythmTrack={false} />{" "}
         <InstrumentName programNumber={event.value} isRhythmTrack={false} />
       </Container>
