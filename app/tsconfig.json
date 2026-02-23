@@ -6,6 +6,7 @@
       "node",
       "webmidi",
       "wicg-file-system-access",
+      "web-bluetooth",
       "vite-plugin-svgr/client"
     ],
     "sourceMap": true,

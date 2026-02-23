@@ -1,6 +1,7 @@
 import { Player } from "@signal-app/player"
 import { deserializeSingleEvent, Stream } from "midifile-ts"
 import { MIDIDeviceStore } from "../stores/MIDIDeviceStore"
+import { MIDIInputEvent } from "./MIDIInput"
 
 export class MIDIMonitor {
   channel: number = 0
@@ -10,7 +11,7 @@ export class MIDIMonitor {
     private readonly midiDeviceStore: MIDIDeviceStore,
   ) {}
 
-  onMessage(e: WebMidi.MIDIMessageEvent) {
+  onMessage(e: MIDIInputEvent) {
     const stream = new Stream(e.data)
     const event = deserializeSingleEvent(stream)
 
