@@ -1,29 +1,24 @@
+import { isNoteEvent, NoteEvent, TrackId } from "@signal-app/core"
 import { useCallback, useMemo } from "react"
-import { Range } from "../entities/geometry/Range"
-import { isEventOverlapRange } from "../helpers/filterEvents"
-import { isNoteEvent, NoteEvent, TrackId } from "../track"
+import {
+  useEventView,
+  useEventViewForTrack,
+  useSyncEventViewWithScroll,
+} from "./useEventView"
 import { usePianoRoll } from "./usePianoRoll"
-import { useTickScroll } from "./useTickScroll"
 import { useTrack } from "./useTrack"
 
 export function useGhostNotes(trackId: TrackId) {
   const { transform } = usePianoRoll()
-  const { canvasWidth, scrollLeft, transform: tickTransform } = useTickScroll()
-  const { events, isRhythmTrack } = useTrack(trackId)
+  const { isRhythmTrack } = useTrack(trackId)
+  const eventView = useEventViewForTrack(trackId)
+  const windowedEvents = useEventView(eventView)
 
-  const noteEvents = useMemo(() => events.filter(isNoteEvent), [events])
+  useSyncEventViewWithScroll(eventView)
 
-  const windowedEvents = useMemo(
-    () =>
-      noteEvents.filter(
-        isEventOverlapRange(
-          Range.fromLength(
-            tickTransform.getTick(scrollLeft),
-            tickTransform.getTick(canvasWidth),
-          ),
-        ),
-      ),
-    [scrollLeft, canvasWidth, tickTransform.id, noteEvents],
+  const noteEvents = useMemo(
+    () => windowedEvents.filter(isNoteEvent),
+    [windowedEvents],
   )
 
   const getRect = useCallback(
@@ -34,16 +29,17 @@ export function useGhostNotes(trackId: TrackId) {
 
   const notes = useMemo(
     () =>
-      windowedEvents.map((e) => {
+      noteEvents.map((e) => {
         const rect = getRect(e)
         return {
           ...rect,
           id: e.id,
           velocity: 127, // draw opaque when ghost
+          noteNumber: e.noteNumber,
           isSelected: false,
         }
       }),
-    [windowedEvents, getRect],
+    [noteEvents, getRect],
   )
 
   return { notes, isRhythmTrack }

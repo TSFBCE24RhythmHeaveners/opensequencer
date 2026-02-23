@@ -1,66 +1,48 @@
+import { Track, TrackId } from "@signal-app/core"
 import { useCallback } from "react"
-import Song from "../song"
-import Track, { TrackId } from "../track"
-import { useMobxSelector, useMobxStore } from "./useMobxSelector"
+import { useMobxGetter, useMobxSetter } from "./useMobxSelector"
 import { useStores } from "./useStores"
 
 export const useSong = () => {
   const { songStore } = useStores()
-  const song = useMobxStore(({ songStore }) => songStore.song)
+  const song = useMobxGetter(songStore, "song")
 
   return {
     get name() {
-      return useMobxSelector(() => song.name, [song])
+      return useMobxGetter(song, "name")
     },
     get timebase() {
-      return useMobxSelector(() => song.timebase, [song])
+      return useMobxGetter(song, "timebase")
     },
     get measures() {
-      return useMobxSelector(() => song.measures, [song])
+      return useMobxGetter(song, "measures")
     },
     get timeSignatures() {
-      return useMobxSelector(() => song.timeSignatures, [song])
+      return useMobxGetter(song, "timeSignatures")
     },
     get tracks() {
-      return useMobxSelector(() => song.tracks, [song])
+      return useMobxGetter(song, "tracks")
     },
     get isSaved() {
-      return useMobxSelector(() => song.isSaved, [song])
+      return useMobxGetter(song, "isSaved")
     },
     get filepath() {
-      return useMobxSelector(() => song.filepath, [song])
+      return useMobxGetter(song, "filepath")
     },
     get fileHandle() {
-      return useMobxSelector(() => song.fileHandle, [song])
+      return useMobxGetter(song, "fileHandle")
     },
     get cloudSongId() {
-      return useMobxSelector(() => song.cloudSongId, [song])
+      return useMobxGetter(song, "cloudSongId")
     },
-    setName: useCallback(
-      (name: string) => {
-        song.name = name
-      },
-      [song],
-    ),
+    get endOfSong() {
+      return useMobxGetter(song, "endOfSong")
+    },
+    setName: useMobxSetter(song, "name"),
     getSong: useCallback(() => songStore.song, [songStore]),
-    setSong: useCallback(
-      (song: Song) => {
-        songStore.song = song
-      },
-      [song],
-    ),
-    setSaved: useCallback(
-      (saved: boolean) => {
-        song.isSaved = saved
-      },
-      [song],
-    ),
-    setFilepath: useCallback(
-      (filepath: string) => {
-        song.filepath = filepath
-      },
-      [song],
-    ),
+    setSong: useMobxSetter(songStore, "song"),
+    setSaved: useMobxSetter(song, "isSaved"),
+    setFilepath: useMobxSetter(song, "filepath"),
     addTrack: useCallback(
       (track: Track) => {
         song.addTrack(track)
@@ -94,17 +76,6 @@ export const useSong = () => {
     getChannelForTrack: useCallback(
       (trackId: TrackId) => {
         return song.getTrack(trackId)?.channel
-      },
-      [song],
-    ),
-    transposeNotes: useCallback(
-      (
-        deltaPitch: number,
-        selectedEventIds: {
-          [key: number]: number[] // trackIndex: eventId
-        },
-      ) => {
-        song.transposeNotes(deltaPitch, selectedEventIds)
       },
       [song],
     ),

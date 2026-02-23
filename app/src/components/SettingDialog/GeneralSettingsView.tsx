@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import { FC } from "react"
+import { FC, useCallback } from "react"
 import { useSettings } from "../../hooks/useSettings"
 import {
   Language,
@@ -9,6 +9,7 @@ import {
 import { themes, ThemeType } from "../../theme/Theme"
 import { ThemeName } from "../../theme/ThemeName"
 import { DialogContent, DialogTitle } from "../Dialog/Dialog"
+import { Checkbox } from "../ui/Checkbox"
 import { Label } from "../ui/Label"
 import { Select } from "../ui/Select"
 
@@ -24,6 +25,7 @@ const LanguageSelect: FC = () => {
     { label: "English", language: "en" },
     { label: "French", language: "fr" },
     { label: "Japanese", language: "ja" },
+    { label: "Slovak", language: "sk" },
     { label: "Chinese (Simplified)", language: "zh-Hans" },
     { label: "Chinese (Traditional)", language: "zh-Hant" },
   ]
@@ -65,10 +67,38 @@ const ThemeSelect: FC = () => {
   )
 }
 
+const ShowNoteLabelCheckbox: FC = () => {
+  const { showNoteLabels, setShowNoteLabels } = useSettings()
+  const onCheckedChange = useCallback(
+    (checked: boolean) => {
+      setShowNoteLabels(checked)
+    },
+    [setShowNoteLabels],
+  )
+
+  return (
+    <Checkbox
+      checked={showNoteLabels}
+      onCheckedChange={onCheckedChange}
+      label={<Localized name="show-note-labels" />}
+    />
+  )
+}
+
 const Column = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+`
+
+const SectionTitle = styled.div`
+  font-weight: bold;
+  margin: 1rem 0;
+`
+
+const SectionContent = styled.div`
+  display: flex;
+  flex-direction: column;
 `
 
 export const GeneralSettingsView: FC = () => {
@@ -81,6 +111,12 @@ export const GeneralSettingsView: FC = () => {
         <Column>
           <LanguageSelect />
           <ThemeSelect />
+          <SectionContent>
+            <SectionTitle>
+              <Localized name="appearance" />
+            </SectionTitle>
+            <ShowNoteLabelCheckbox />
+          </SectionContent>
         </Column>
       </DialogContent>
     </>

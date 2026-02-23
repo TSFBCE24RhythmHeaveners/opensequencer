@@ -1,8 +1,6 @@
+import { BatchUpdateOperation } from "@signal-app/core"
 import { useCallback } from "react"
-import {
-  BatchUpdateOperation,
-  useBatchUpdateSelectedNotesVelocity,
-} from "../../actions"
+import { useBatchUpdateSelectedNotesVelocity } from "../../actions"
 import { usePianoRoll } from "../../hooks/usePianoRoll"
 import { VelocityDialog } from "./VelocityDialog"
 

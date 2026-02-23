@@ -1,21 +1,23 @@
-import { maxBy } from "lodash"
-import { ControllerEvent, PitchBendEvent } from "midifile-ts"
-import { useMemo } from "react"
-import { isNotUndefined } from "../helpers/array"
 import {
   TrackEventOf,
   isControllerEventWithType,
   isPitchBendEvent,
-} from "../track"
+} from "@signal-app/core"
+import { maxBy } from "lodash"
+import { ControllerEvent, PitchBendEvent } from "midifile-ts"
+import { useMemo } from "react"
+import { isNotUndefined } from "../helpers/array"
 import { useControlPane } from "./useControlPane"
+import { useEventView } from "./useEventView"
 import { usePianoRoll } from "./usePianoRoll"
 import { useTickScroll } from "./useTickScroll"
 import { useTrack } from "./useTrack"
 
 export function useControlValueEvents() {
-  const { controlMode, transform } = useControlPane()
-  const { scrollLeft } = useTickScroll()
-  const { windowedEvents, selectedTrackId } = usePianoRoll()
+  const { controlMode } = useControlPane()
+  const { transform, scrollLeft } = useTickScroll()
+  const { selectedTrackId } = usePianoRoll()
+  const windowedEvents = useEventView()
   const { events: selectedTrackEvents } = useTrack(selectedTrackId)
 
   const filter = useMemo(() => {

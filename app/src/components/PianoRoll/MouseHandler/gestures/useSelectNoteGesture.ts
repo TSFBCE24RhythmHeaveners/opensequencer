@@ -6,17 +6,18 @@ import { observeDrag2 } from "../../../../helpers/observeDrag"
 import { useControlPane } from "../../../../hooks/useControlPane"
 import { usePianoRoll } from "../../../../hooks/usePianoRoll"
 import { usePlayer } from "../../../../hooks/usePlayer"
+import { useQuantizer } from "../../../../hooks/useQuantizer"
 import { useTrack } from "../../../../hooks/useTrack"
 
 export const useSelectNoteGesture = (): MouseGesture => {
   const {
     transform,
-    quantizer,
     getLocal,
     setSelection,
     selectedTrackId,
     setSelectedNoteIds,
   } = usePianoRoll()
+  const { quantizeRound } = useQuantizer()
   let { selection } = usePianoRoll()
   const { getEvents } = useTrack(selectedTrackId)
   const { isPlaying, setPosition } = usePlayer()
@@ -29,7 +30,7 @@ export const useSelectNoteGesture = (): MouseGesture => {
       const startPos = local
 
       if (!isPlaying) {
-        setPosition(quantizer.round(start.tick))
+        setPosition(quantizeRound(start.tick))
       }
 
       setSelectedEventIds([])

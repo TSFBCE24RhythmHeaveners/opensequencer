@@ -1,8 +1,8 @@
+import { TrackId } from "@signal-app/core"
 import { range } from "lodash"
 import { FC, useEffect, useState } from "react"
 import { useTrack } from "../../hooks/useTrack"
 import { Localized } from "../../localize/useLocalization"
-import { TrackId } from "../../track"
 import {
   Dialog,
   DialogActions,
@@ -21,6 +21,32 @@ export interface TrackDialogProps {
   onClose: () => void
 }
 
+const ChannelSelect: FC<{
+  channel: number | undefined
+  onChange: (channel: number) => void
+}> = ({ channel, onChange }) => {
+  return (
+    <Select
+      value={channel}
+      onChange={(e) => onChange(parseInt(e.target.value as string))}
+    >
+      {range(0, 16).map((v) => (
+        <option key={v} value={v.toString()}>
+          {v + 1}
+          {v === 9 ? (
+            <>
+              {" "}
+              (<Localized name="rhythm-track" />)
+            </>
+          ) : (
+            ""
+          )}
+        </option>
+      ))}
+    </Select>
+  )
+}
+
 export const TrackDialog: FC<TrackDialogProps> = ({
   trackId,
   open,
@@ -36,6 +62,7 @@ export const TrackDialog: FC<TrackDialogProps> = ({
     }
     _setName(name)
     _setChannel(channel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackId, open])
 
   return (
@@ -43,37 +70,22 @@ export const TrackDialog: FC<TrackDialogProps> = ({
       <DialogTitle>
         <Localized name="track" />: <TrackName trackId={trackId} />
       </DialogTitle>
-      <DialogContent>
+      <DialogContent
+        style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+      >
         <Label>
           <Localized name="track-name" />
+          <TextField
+            type="text"
+            value={_name}
+            onChange={(e) => _setName(e.target.value as string)}
+            style={{ width: "100%" }}
+          />
         </Label>
-        <TextField
-          type="text"
-          value={_name}
-          onChange={(e) => _setName(e.target.value as string)}
-          style={{ width: "100%", marginBottom: "1rem" }}
-        />
         <Label>
           <Localized name="channel" />
+          <ChannelSelect channel={_channel} onChange={_setChannel} />
         </Label>
-        <Select
-          value={_channel}
-          onChange={(e) => _setChannel(parseInt(e.target.value as string))}
-        >
-          {range(0, 16).map((v) => (
-            <option key={v} value={v.toString()}>
-              {v + 1}
-              {v === 9 ? (
-                <>
-                  {" "}
-                  (<Localized name="rhythm-track" />)
-                </>
-              ) : (
-                ""
-              )}
-            </option>
-          ))}
-        </Select>
       </DialogContent>
       <DialogActions>
         <Button autoFocus onClick={onClose}>

@@ -1,17 +1,22 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-} from "react"
+import { atom, useAtomValue, useSetAtom, useStore } from "jotai"
+import { Store } from "jotai/vanilla/store"
+import { createContext, useCallback, useContext, useMemo } from "react"
+import { Point } from "../entities/geometry/Point"
 import { TempoSelection } from "../entities/selection/TempoSelection"
-import { PianoRollMouseMode } from "../stores/PianoRollStore"
-import TempoEditorStore from "../stores/TempoEditorStore"
-import { useMobxSelector } from "./useMobxSelector"
-import { RulerProvider, useRuler } from "./useRuler"
-import { useStores } from "./useStores"
-import { TickScrollProvider } from "./useTickScroll"
+import { TempoCoordTransform } from "../entities/transform/TempoCoordTransform"
+import { BeatsProvider, createBeatsScope } from "./useBeats"
+import { createQuantizerScope, QuantizerProvider } from "./useQuantizer"
+import {
+  createTickScrollScope,
+  TickScrollProvider,
+  useTickScroll,
+} from "./useTickScroll"
+
+type TempoEditorStore = {
+  quantizerScope: Store
+  tickScrollScope: Store
+  beatsScope: Store
+}
 
 const TempoEditorStoreContext = createContext<TempoEditorStore>(null!)
 
@@ -20,15 +25,19 @@ export function TempoEditorProvider({
 }: {
   children: React.ReactNode
 }) {
-  const { songStore, player } = useStores()
-  const tempoEditorStore = useMemo(
-    () => new TempoEditorStore(songStore, player),
-    [],
-  )
+  const store = useStore()
 
-  useEffect(() => {
-    tempoEditorStore.setUpAutorun()
-  }, [tempoEditorStore])
+  const tempoEditorStore = useMemo(() => {
+    // should match the order in TempoEditorScope
+    const tickScrollScope = createTickScrollScope(store)
+    const quantizerScope = createQuantizerScope(tickScrollScope)
+    const beatsScope = createBeatsScope(quantizerScope)
+    return {
+      tickScrollScope,
+      quantizerScope,
+      beatsScope,
+    }
+  }, [store])
 
   return (
     <TempoEditorStoreContext.Provider value={tempoEditorStore}>
@@ -38,99 +47,68 @@ export function TempoEditorProvider({
 }
 
 export function TempoEditorScope({ children }: { children: React.ReactNode }) {
-  const { tickScrollStore, rulerStore } = useContext(TempoEditorStoreContext)
+  const { tickScrollScope, quantizerScope, beatsScope } = useContext(
+    TempoEditorStoreContext,
+  )
 
   return (
-    <TickScrollProvider value={tickScrollStore}>
-      <RulerProvider value={rulerStore}>{children}</RulerProvider>
+    <TickScrollProvider scope={tickScrollScope} minScaleX={0.15} maxScaleX={15}>
+      <QuantizerProvider scope={quantizerScope} quantize={4}>
+        <BeatsProvider scope={beatsScope}>{children}</BeatsProvider>
+      </QuantizerProvider>
     </TickScrollProvider>
   )
 }
 
 export function useTempoEditor() {
-  const tempoEditorStore = useContext(TempoEditorStoreContext)
-
-  const selection = useMobxSelector(
-    () => tempoEditorStore.selection,
-    [tempoEditorStore],
-  )
-  const { beats } = useRuler()
-  const transform = useMobxSelector(
-    () => tempoEditorStore.transform,
-    [tempoEditorStore],
-  )
-  const mouseMode = useMobxSelector(
-    () => tempoEditorStore.mouseMode,
-    [tempoEditorStore],
-  )
-
-  const selectionRect = useMemo(
-    () =>
-      selection != null ? TempoSelection.getBounds(selection, transform) : null,
-    [selection, transform],
-  )
-
-  const cursor = useMemo(
-    () =>
-      mouseMode === "pencil"
-        ? `url("./cursor-pencil.svg") 0 20, pointer`
-        : "auto",
-    [mouseMode],
-  )
+  const { tickScrollScope } = useContext(TempoEditorStoreContext)
 
   return {
-    selection,
-    transform,
-    selectionRect,
-    beats,
-    cursor,
-    get quantizer() {
-      return useMobxSelector(
-        () => tempoEditorStore.quantizer,
-        [tempoEditorStore],
+    get selection() {
+      return useAtomValue(selectionAtom)
+    },
+    get transform() {
+      // WANTFIX: Use derived atom to create TempoCoordTransform
+      const { transform: tickTransform } = useTickScroll()
+      const canvasHeight = useAtomValue(canvasHeightAtom)
+      return useMemo(
+        () => new TempoCoordTransform(tickTransform, canvasHeight),
+        [tickTransform, canvasHeight],
       )
     },
     get selectedEventIds() {
-      return useMobxSelector(
-        () => tempoEditorStore.selectedEventIds,
-        [tempoEditorStore],
-      )
+      return useAtomValue(selectedEventIdsAtom)
     },
     get mouseMode() {
-      return useMobxSelector(
-        () => tempoEditorStore.mouseMode,
-        [tempoEditorStore],
+      return useAtomValue(mouseModeAtom)
+    },
+    // convert mouse position to the local coordinate on the canvas
+    get getLocal() {
+      const { scrollLeft } = useTickScroll(tickScrollScope)
+      return useCallback(
+        (e: { offsetX: number; offsetY: number }): Point => ({
+          x: e.offsetX + scrollLeft,
+          y: e.offsetY,
+        }),
+        [scrollLeft],
       )
     },
-    get isQuantizeEnabled() {
-      return useMobxSelector(
-        () => tempoEditorStore.isQuantizeEnabled,
-        [tempoEditorStore],
-      )
-    },
-    get quantize() {
-      return useMobxSelector(
-        () => tempoEditorStore.quantize,
-        [tempoEditorStore],
-      )
-    },
-    setSelection: useCallback((selection: TempoSelection | null) => {
-      tempoEditorStore.selection = selection
-    }, []),
-    setSelectedEventIds: useCallback((ids: number[]) => {
-      tempoEditorStore.selectedEventIds = ids
-    }, []),
-    setMouseMode: useCallback((mode: PianoRollMouseMode) => {
-      tempoEditorStore.mouseMode = mode
-    }, []),
-    setCanvasHeight: useCallback((height: number) => {
-      tempoEditorStore.canvasHeight = height
-    }, []),
-    setQuantize: useCallback((quantize: number) => {
-      tempoEditorStore.quantize = quantize
-    }, []),
-    setQuantizeEnabled: useCallback((isEnabled: boolean) => {
-      tempoEditorStore.isQuantizeEnabled = isEnabled
-    }, []),
+    setSelection: useSetAtom(selectionAtom),
+    setSelectedEventIds: useSetAtom(selectedEventIdsAtom),
+    setMouseMode: useSetAtom(mouseModeAtom),
+    setCanvasHeight: useSetAtom(canvasHeightAtom),
+    resetSelection: useSetAtom(resetSelectionAtom),
   }
 }
+
+// atoms
+const canvasHeightAtom = atom(0)
+const mouseModeAtom = atom<"pencil" | "selection">("pencil")
+const selectionAtom = atom<TempoSelection | null>(null)
+const selectedEventIdsAtom = atom<number[]>([])
+
+// actions
+const resetSelectionAtom = atom(null, (_get, set) => {
+  set(selectionAtom, null)
+  set(selectedEventIdsAtom, [])
+})

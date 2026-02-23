@@ -1,4 +1,5 @@
 import styled from "@emotion/styled"
+import { trackColorToCSSColor, TrackId } from "@signal-app/core"
 import Headset from "mdi-react/HeadphonesIcon"
 import Layers from "mdi-react/LayersIcon"
 import VolumeUp from "mdi-react/VolumeHighIcon"
@@ -10,16 +11,12 @@ import {
   useToggleGhostTrack,
 } from "../../actions"
 import { useContextMenu } from "../../hooks/useContextMenu"
-import { useInstrumentBrowser } from "../../hooks/useInstrumentBrowser"
 import { usePianoRoll } from "../../hooks/usePianoRoll"
 import { useRouter } from "../../hooks/useRouter"
 import { useTrack } from "../../hooks/useTrack"
 import { useTrackMute } from "../../hooks/useTrackMute"
-import { categoryEmojis, getCategoryIndex } from "../../midi/GM"
-import { TrackId } from "../../track/Track"
-import { trackColorToCSSColor } from "../../track/TrackColor"
-import { TrackMute } from "../../trackMute/TrackMute"
-import { InstrumentName } from "./InstrumentName"
+import { InstrumentBrowser } from "../InstrumentBrowser/InstrumentBrowser"
+import { InstrumentEmoji, InstrumentName } from "./InstrumentName"
 import { TrackDialog } from "./TrackDialog"
 import { TrackListContextMenu } from "./TrackListContextMenu"
 import { TrackName } from "./TrackName"
@@ -159,10 +156,10 @@ export const TrackListItem: FC<TrackListItemProps> = ({ trackId }) => {
     programNumber,
     isRhythmTrack,
     color: trackColor,
+    isMuted,
+    isSolo,
   } = useTrack(trackId)
-  const { trackMute } = useTrackMute()
   const { setPath } = useRouter()
-  const { setSetting, setOpen } = useInstrumentBrowser()
   const { toggleMute: toggleMuteTrack, toggleSolo: toggleSoloTrack } =
     useTrackMute()
   const toggleGhostTrack = useToggleGhostTrack()
@@ -170,22 +167,17 @@ export const TrackListItem: FC<TrackListItemProps> = ({ trackId }) => {
   const selectTrack = useSelectTrack()
 
   const selected = trackId === selectedTrackId
-  const mute = TrackMute.isMuted(trackMute, trackId)
-  const solo = TrackMute.isSolo(trackMute, trackId)
   const ghostTrack = !notGhostTrackIds.has(trackId)
   const { onContextMenu, menuProps } = useContextMenu()
   const [isDialogOpened, setDialogOpened] = useState(false)
+  const [isInstrumentBrowserOpen, setInstrumentBrowserOpen] = useState(false)
 
   const onDoubleClickIcon = useCallback(() => {
     if (isConductorTrack) {
       return
     }
-    setOpen(true)
-    setSetting({
-      programNumber,
-      isRhythmTrack,
-    })
-  }, [setSetting, programNumber, isRhythmTrack, setOpen, isConductorTrack])
+    setInstrumentBrowserOpen(true)
+  }, [isConductorTrack])
 
   const onClickMute: MouseEventHandler = useCallback(
     (e) => {
@@ -224,10 +216,6 @@ export const TrackListItem: FC<TrackListItemProps> = ({ trackId }) => {
     setDialogOpened(true)
   }, [])
 
-  const emoji = isRhythmTrack
-    ? "🥁"
-    : categoryEmojis[getCategoryIndex(programNumber ?? 0)]
-
   const color =
     trackColor !== undefined ? trackColorToCSSColor(trackColor) : "transparent"
 
@@ -246,7 +234,12 @@ export const TrackListItem: FC<TrackListItemProps> = ({ trackId }) => {
           }}
           onDoubleClick={onDoubleClickIcon}
         >
-          <IconInner data-selected={selected}>{emoji}</IconInner>
+          <IconInner data-selected={selected}>
+            <InstrumentEmoji
+              isRhythmTrack={isRhythmTrack}
+              programNumber={programNumber ?? 0}
+            />
+          </IconInner>
         </Icon>
         <div>
           <Label>
@@ -262,18 +255,18 @@ export const TrackListItem: FC<TrackListItemProps> = ({ trackId }) => {
           </Label>
           <Controls>
             <ControlButton
-              data-active={solo}
+              data-active={isSolo}
               onMouseDown={onClickSolo}
               tabIndex={-1}
             >
               <Headset />
             </ControlButton>
             <ControlButton
-              data-active={mute}
+              data-active={isMuted}
               onMouseDown={onClickMute}
               tabIndex={-1}
             >
-              {mute ? <VolumeOff /> : <VolumeUp />}
+              {isMuted ? <VolumeOff /> : <VolumeUp />}
             </ControlButton>
             <ControlButton
               data-active={ghostTrack}
@@ -283,7 +276,7 @@ export const TrackListItem: FC<TrackListItemProps> = ({ trackId }) => {
               <Layers />
             </ControlButton>
             {channel !== undefined && (
-              <ChannelName onClick={onClickChannel}>
+              <ChannelName onMouseDown={onClickChannel}>
                 CH {channel + 1}
               </ChannelName>
             )}
@@ -295,6 +288,12 @@ export const TrackListItem: FC<TrackListItemProps> = ({ trackId }) => {
         trackId={trackId}
         open={isDialogOpened}
         onClose={() => setDialogOpened(false)}
+      />
+      <InstrumentBrowser
+        isOpen={isInstrumentBrowserOpen}
+        onOpenChange={setInstrumentBrowserOpen}
+        trackId={trackId}
+        showInsertButton={true}
       />
     </>
   )

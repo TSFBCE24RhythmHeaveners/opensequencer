@@ -1,4 +1,4 @@
-import { SoundFontSynth } from "@signal-app/player"
+import { SoundFont, SoundFontSynth } from "@signal-app/player"
 import { makeObservable, observable } from "mobx"
 import { makePersistable } from "mobx-persist-store"
 import { basename } from "../helpers/path"
@@ -98,7 +98,7 @@ export class SoundFontStore {
     return await this.storage.load(id)
   }
 
-  async load(id: number) {
+  load = async (id: number) => {
     const soundfont = await this.getSoundFont(id)
 
     if (soundfont === null) {
@@ -106,36 +106,22 @@ export class SoundFontStore {
     }
 
     this.isLoading = true
-
-    switch (soundfont.type) {
-      case "local":
-        await this.synth.loadSoundFont(soundfont.data)
-        break
-      case "remote":
-        await this.synth.loadSoundFontFromURL(soundfont.url)
-        break
-      case "file": {
-        const data = await window.electronAPI.readFile(soundfont.path)
-        await this.synth.loadSoundFont(data)
-        break
-      }
-    }
-
+    await this.synth.loadSoundFont(await loadSoundFont(soundfont))
     this.selectedSoundFontId = id
     this.isLoading = false
   }
 
-  async addSoundFont(item: SoundFontItem, metadata: Metadata) {
+  addSoundFont = async (item: SoundFontItem, metadata: Metadata) => {
     await this.storage.save(item, metadata)
     await this.updateFileList()
   }
 
-  async removeSoundFont(id: number) {
+  removeSoundFont = async (id: number) => {
     await this.storage.delete(id)
     await this.updateFileList()
   }
 
-  async scanSoundFonts() {
+  scanSoundFonts = async () => {
     if (!isRunningInElectron()) {
       return
     }
@@ -170,17 +156,30 @@ export class SoundFontStore {
     await this.storage.deleteMany(itemsInScanPaths)
   }
 
-  async removeScanPath(path: string) {
+  removeScanPath = async (path: string) => {
     await this.clearScannedSoundFonts()
     this.scanPaths = this.scanPaths.filter((p) => p !== path)
     this.scanSoundFonts()
   }
 
-  async addScanPath(path: string) {
+  addScanPath = async (path: string) => {
     if (this.scanPaths.includes(path)) {
       return
     }
     this.scanPaths = [...this.scanPaths, path]
     await this.scanSoundFonts()
+  }
+}
+
+async function loadSoundFont(soundfont: SoundFontItem) {
+  switch (soundfont.type) {
+    case "local":
+      return SoundFont.load(soundfont.data)
+    case "remote":
+      return await SoundFont.loadFromURL(soundfont.url)
+    case "file": {
+      const data = await window.electronAPI.readFile(soundfont.path)
+      return await SoundFont.load(data)
+    }
   }
 }

@@ -1,17 +1,18 @@
-import { maxBy, min, minBy } from "lodash"
+import { ControlEventsClipboardDataSchema } from "@signal-app/core"
 import { ControllerEvent, PitchBendEvent } from "midifile-ts"
-import { transaction } from "mobx"
-import {
-  ControlEventsClipboardData,
-  ControlEventsClipboardDataSchema,
-} from "../clipboard/clipboardTypes"
+import { useCallback } from "react"
 import { isNotUndefined } from "../helpers/array"
+import { useCommands } from "../hooks/useCommands"
 import { useControlPane } from "../hooks/useControlPane"
 import { useHistory } from "../hooks/useHistory"
 import { usePianoRoll } from "../hooks/usePianoRoll"
 import { usePlayer } from "../hooks/usePlayer"
 import { useTrack } from "../hooks/useTrack"
-import { readClipboardData, writeClipboardData } from "../services/Clipboard"
+import {
+  readClipboardData,
+  readJSONFromClipboard,
+  writeClipboardData,
+} from "../services/Clipboard"
 
 export const useCreateOrUpdateControlEventsValue = () => {
   const { selectedTrackId } = usePianoRoll()
@@ -21,22 +22,34 @@ export const useCreateOrUpdateControlEventsValue = () => {
   const { pushHistory } = useHistory()
   const { selectedEventIds } = useControlPane()
 
-  return <T extends ControllerEvent | PitchBendEvent>(event: T) => {
-    pushHistory()
+  return useCallback(
+    <T extends ControllerEvent | PitchBendEvent>(event: T) => {
+      pushHistory()
 
-    const controllerEvents = selectedEventIds
-      .map((id) => getEventById(id))
-      .filter(isNotUndefined)
+      const controllerEvents = selectedEventIds
+        .map((id) => getEventById(id))
+        .filter(isNotUndefined)
 
-    if (controllerEvents.length > 0) {
-      controllerEvents.forEach((e) => updateEvent(e.id, { value: event.value }))
-    } else {
-      createOrUpdate({
-        ...event,
-        tick: position,
-      })
-    }
-  }
+      if (controllerEvents.length > 0) {
+        controllerEvents.forEach((e) =>
+          updateEvent(e.id, { value: event.value }),
+        )
+      } else {
+        createOrUpdate({
+          ...event,
+          tick: position,
+        })
+      }
+    },
+    [
+      selectedEventIds,
+      getEventById,
+      updateEvent,
+      createOrUpdate,
+      position,
+      pushHistory,
+    ],
+  )
 }
 
 export const useDeleteControlSelection = () => {
@@ -45,7 +58,7 @@ export const useDeleteControlSelection = () => {
   const { pushHistory } = useHistory()
   const { selectedEventIds, setSelection } = useControlPane()
 
-  return () => {
+  return useCallback(() => {
     if (selectedEventIds.length === 0) {
       return
     }
@@ -55,99 +68,90 @@ export const useDeleteControlSelection = () => {
     // Remove selected notes and selected notes
     removeEvents(selectedEventIds)
     setSelection(null)
-  }
+  }, [selectedEventIds, removeEvents, pushHistory, setSelection])
 }
 
 export const useCopyControlSelection = () => {
   const { selectedTrackId } = usePianoRoll()
-  const { getEventById } = useTrack(selectedTrackId)
   const { selectedEventIds } = useControlPane()
+  const commands = useCommands()
 
-  return async () => {
+  return useCallback(async () => {
     if (selectedEventIds.length === 0) {
       return
     }
-
-    // Copy selected events
-    const events = selectedEventIds
-      .map((id) => getEventById(id))
-      .filter(isNotUndefined)
-
-    const minTick = min(events.map((e) => e.tick))
-
-    if (minTick === undefined) {
-      return
-    }
-
-    const relativePositionedEvents = events.map((note) => ({
-      ...note,
-      tick: note.tick - minTick,
-    }))
-
-    const data: ControlEventsClipboardData = {
-      type: "control_events",
-      events: relativePositionedEvents,
-    }
-
-    await writeClipboardData(data)
-  }
-}
-
-export const usePasteControlSelection = () => {
-  const { selectedTrackId } = usePianoRoll()
-  const { createOrUpdate } = useTrack(selectedTrackId)
-  const { position } = usePlayer()
-  const { pushHistory } = useHistory()
-
-  return async (clipboardData?: any) => {
-    const obj = clipboardData ?? (await readClipboardData())
-    const { data } = ControlEventsClipboardDataSchema.safeParse(obj)
-
+    const data = commands.control.getClipboardDataForSelection(
+      selectedTrackId,
+      selectedEventIds,
+    )
     if (!data) {
       return
     }
 
-    pushHistory()
+    await writeClipboardData(data)
+  }, [selectedEventIds, commands, selectedTrackId])
+}
 
-    const events = data.events.map((e) => ({
-      ...e,
-      tick: e.tick + position,
-    }))
-    transaction(() => events.forEach(createOrUpdate))
-  }
+export const usePasteControlSelection = () => {
+  const { selectedTrackId } = usePianoRoll()
+  const { position } = usePlayer()
+  const { pushHistory } = useHistory()
+  const commands = useCommands()
+
+  return useCallback(
+    async (e?: ClipboardEvent) => {
+      const obj = e ? readJSONFromClipboard(e) : await readClipboardData()
+      const { data } = ControlEventsClipboardDataSchema.safeParse(obj)
+
+      if (!data) {
+        return
+      }
+
+      pushHistory()
+      commands.control.pasteClipboardDataAtPosition(
+        selectedTrackId,
+        data,
+        position,
+      )
+    },
+    [commands, position, pushHistory, selectedTrackId],
+  )
+}
+
+export const useCutControlSelection = () => {
+  const copyControlSelection = useCopyControlSelection()
+  const deleteControlSelection = useDeleteControlSelection()
+
+  return useCallback(() => {
+    copyControlSelection()
+    deleteControlSelection()
+  }, [copyControlSelection, deleteControlSelection])
 }
 
 export const useDuplicateControlSelection = () => {
   const { selectedTrackId } = usePianoRoll()
-  const { getEventById, createOrUpdate } = useTrack(selectedTrackId)
   const { pushHistory } = useHistory()
   const { selectedEventIds, setSelectedEventIds } = useControlPane()
+  const commands = useCommands()
 
-  return () => {
+  return useCallback(() => {
     if (selectedEventIds.length === 0) {
       return
     }
 
     pushHistory()
 
-    const selectedEvents = selectedEventIds
-      .map((id) => getEventById(id))
-      .filter(isNotUndefined)
-
-    // move to the end of selection
-    const deltaTick =
-      (maxBy(selectedEvents, (e) => e.tick)?.tick ?? 0) -
-      (minBy(selectedEvents, (e) => e.tick)?.tick ?? 0)
-
-    const notes = selectedEvents.map((note) => ({
-      ...note,
-      tick: note.tick + deltaTick,
-    }))
-
     // select the created events
-    const addedEvents = transaction(() => notes.map(createOrUpdate)).filter(
-      isNotUndefined,
+    const addedEventIds = commands.track.duplicateEvents(
+      selectedTrackId,
+      selectedEventIds,
     )
-    setSelectedEventIds(addedEvents.map((e) => e.id))
-  }
+    setSelectedEventIds(addedEventIds)
+  }, [
+    selectedEventIds,
+    pushHistory,
+    setSelectedEventIds,
+    commands,
+    selectedTrackId,
+  ])
 }

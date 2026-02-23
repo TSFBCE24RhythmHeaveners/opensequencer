@@ -1,13 +1,13 @@
 import { CloudSong } from "@signal-app/api"
+import { Song, songFromMidi, songToMidi } from "@signal-app/core"
 import { basename } from "../helpers/path"
-import { songFromMidi, songToMidi } from "../midi/midiConversion"
+import { useAutoSave } from "../hooks/useAutoSave"
 import {
   cloudMidiRepository,
   cloudSongDataRepository,
   cloudSongRepository,
   userRepository,
 } from "../services/repositories"
-import Song from "../song"
 
 export const useLoadSong = () => {
   return async (cloudSong: CloudSong) => {
@@ -22,6 +22,8 @@ export const useLoadSong = () => {
 }
 
 export const useCreateSong = () => {
+  const { onUserExplicitAction } = useAutoSave()
+
   return async (song: Song) => {
     const bytes = songToMidi(song)
     const songDataId = await cloudSongDataRepository.create({ data: bytes })
@@ -33,10 +35,13 @@ export const useCreateSong = () => {
     song.cloudSongDataId = songDataId
     song.cloudSongId = songId
     song.isSaved = true
+    onUserExplicitAction()
   }
 }
 
 export const useUpdateSong = () => {
+  const { onUserExplicitAction } = useAutoSave()
+
   return async (song: Song) => {
     if (song.cloudSongId === null || song.cloudSongDataId === null) {
       throw new Error("This song is not loaded from the cloud")
@@ -53,6 +58,7 @@ export const useUpdateSong = () => {
     })
 
     song.isSaved = true
+    onUserExplicitAction()
   }
 }
 

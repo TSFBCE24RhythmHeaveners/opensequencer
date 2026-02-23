@@ -1,12 +1,14 @@
 import styled from "@emotion/styled"
 import useComponentSize from "@rehooks/component-size"
 import { clamp } from "lodash"
-import { FC, useCallback, useRef } from "react"
+import { FC, useCallback, useEffect, useRef } from "react"
 import { Layout, WHEEL_SCROLL_RATE } from "../../Constants"
 import { isTouchPadEvent } from "../../helpers/touchpad"
 import { useKeyScroll } from "../../hooks/useKeyScroll"
+import { usePianoNotesKeyboardShortcut } from "../../hooks/usePianoNotesKeyboardShortcut"
 import { usePianoRoll } from "../../hooks/usePianoRoll"
 import { useTickScroll } from "../../hooks/useTickScroll"
+import { useTrack } from "../../hooks/useTrack"
 import ControlPane from "../ControlPane/ControlPane"
 import {
   HorizontalScaleScrollBar,
@@ -24,12 +26,7 @@ const Parent = styled.div`
 const Alpha = styled.div`
   flex-grow: 1;
   position: relative;
-
-  .alphaContent {
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
+  outline: none;
 `
 
 const Beta = styled.div`
@@ -38,17 +35,16 @@ const Beta = styled.div`
 `
 
 const PianoRollWrapper: FC = () => {
-  const { transform, scrollBy } = usePianoRoll()
+  const { transform, scrollBy, selectedTrackId, setActivePane } = usePianoRoll()
+  const { isRhythmTrack } = useTrack(selectedTrackId)
   const {
     contentHeight,
-    scaleY,
     scrollTop,
     scaleAroundPointY,
     setScrollTopInPixels,
     setScaleY,
   } = useKeyScroll()
   const {
-    scaleX,
     scrollLeft,
     contentWidth,
     scaleAroundPointX,
@@ -56,20 +52,24 @@ const PianoRollWrapper: FC = () => {
     setScrollLeftInPixels,
     setScaleX,
   } = useTickScroll()
+  const keyboardShortcutProps = usePianoNotesKeyboardShortcut()
 
   const ref = useRef(null)
   const size = useComponentSize(ref)
 
   const alphaRef = useRef(null)
   const { height: alphaHeight = 0 } = useComponentSize(alphaRef)
+  const keyWidth = isRhythmTrack
+    ? Layout.keyWidth + Layout.drumKeysWidth
+    : Layout.keyWidth
 
   const onClickScaleUpHorizontal = useCallback(
-    () => scaleAroundPointX(0.2, Layout.keyWidth),
-    [scaleX, scaleAroundPointX],
+    () => scaleAroundPointX(0.2, 0),
+    [scaleAroundPointX],
   )
   const onClickScaleDownHorizontal = useCallback(
-    () => scaleAroundPointX(-0.2, Layout.keyWidth),
-    [scaleX, scaleAroundPointX],
+    () => scaleAroundPointX(-0.2, 0),
+    [scaleAroundPointX],
   )
   const onClickScaleResetHorizontal = useCallback(
     () => setScaleX(1),
@@ -78,11 +78,11 @@ const PianoRollWrapper: FC = () => {
 
   const onClickScaleUpVertical = useCallback(
     () => scaleAroundPointY(0.2, 0),
-    [scaleY, scaleAroundPointY],
+    [scaleAroundPointY],
   )
   const onClickScaleDownVertical = useCallback(
     () => scaleAroundPointY(-0.2, 0),
-    [scaleY, scaleAroundPointY],
+    [scaleAroundPointY],
   )
   const onClickScaleResetVertical = useCallback(() => setScaleY(1), [setScaleY])
 
@@ -116,6 +116,20 @@ const PianoRollWrapper: FC = () => {
     setScrollTopInPixels(scrollTop)
   }, [setScrollTopInPixels, scrollTop])
 
+  const onFocusNotes = useCallback(
+    () => setActivePane("notes"),
+    [setActivePane],
+  )
+
+  const onBlurNotes = useCallback(() => setActivePane(null), [setActivePane])
+
+  useEffect(
+    () => () => {
+      setActivePane(null)
+    },
+    [setActivePane],
+  )
+
   return (
     <Parent ref={ref}>
       <StyledSplitPane
@@ -124,8 +138,19 @@ const PianoRollWrapper: FC = () => {
         defaultSize={"60%"}
         onChange={onChangeSplitPane}
       >
-        <Alpha onWheel={onWheel} ref={alphaRef}>
-          <PianoRollStage width={size.width} height={alphaHeight} />
+        <Alpha
+          onWheel={onWheel}
+          ref={alphaRef}
+          {...keyboardShortcutProps}
+          onFocus={onFocusNotes}
+          onBlur={onBlurNotes}
+          tabIndex={0}
+        >
+          <PianoRollStage
+            width={size.width}
+            height={alphaHeight}
+            keyWidth={keyWidth}
+          />
           <VerticalScaleScrollBar
             scrollOffset={scrollTop}
             contentLength={contentHeight}
@@ -136,7 +161,7 @@ const PianoRollWrapper: FC = () => {
           />
         </Alpha>
         <Beta>
-          <ControlPane />
+          <ControlPane axisWidth={keyWidth} />
         </Beta>
       </StyledSplitPane>
       <HorizontalScaleScrollBar

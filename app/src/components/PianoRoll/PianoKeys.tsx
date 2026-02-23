@@ -1,14 +1,15 @@
 import { useTheme } from "@emotion/react"
+import styled from "@emotion/styled"
 import Color from "color"
-import React, { FC, useCallback, useState } from "react"
+import React, { FC, useCallback, useMemo } from "react"
 import { Layout } from "../../Constants"
 import { Point } from "../../entities/geometry/Point"
 import { KeySignature } from "../../entities/scale/KeySignature"
 import { noteNameWithOctString } from "../../helpers/noteNumberString"
 import { observeDrag2 } from "../../helpers/observeDrag"
 import { useContextMenu } from "../../hooks/useContextMenu"
-import { usePianoRoll } from "../../hooks/usePianoRoll"
-import { usePreviewNote } from "../../hooks/usePreviewNote"
+import { useKeyScroll } from "../../hooks/useKeyScroll"
+import { usePianoKeys } from "../../hooks/usePianoKeys"
 import { Theme } from "../../theme/Theme"
 import DrawCanvas from "../DrawCanvas"
 import { PianoKeysContextMenu } from "./PianoKeysContextMenu"
@@ -97,7 +98,7 @@ function drawLabel(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  keyNum: number,
+  label: string,
   font: string,
   color: string,
 ) {
@@ -106,7 +107,7 @@ function drawLabel(
   ctx.textBaseline = "middle"
   ctx.font = `12px ${font}`
   ctx.fillStyle = color
-  ctx.fillText(noteNameWithOctString(keyNum), x, height / 2)
+  ctx.fillText(label, x, height / 2)
 }
 
 function drawKeys(
@@ -128,7 +129,6 @@ function drawKeys(
   const allKeys = [...Array(numberOfKeys).keys()]
   const whiteKeys = allKeys.filter((i) => Colors[i % Colors.length] === 0)
   const blackKeys = allKeys.filter((i) => Colors[i % Colors.length] === 1)
-  const labelKeys = allKeys.filter((i) => i % 12 === 0)
 
   drawBorder(ctx, width, theme.dividerColor)
 
@@ -184,16 +184,20 @@ function drawKeys(
   }
 
   // Draw labels
-  for (const keyNum of labelKeys) {
+  const labels = new Map(
+    allKeys
+      .filter((i) => i % 12 === 0)
+      .map((i) => [i, noteNameWithOctString(i)]),
+  )
+  for (const [keyNum, label] of labels) {
     const y = (numberOfKeys - keyNum - 1) * keyHeight
     ctx.save()
     ctx.translate(0, y)
-
     drawLabel(
       ctx,
       width,
       keyHeight,
-      keyNum,
+      label,
       theme.canvasFont,
       theme.secondaryTextColor,
     )
@@ -203,19 +207,76 @@ function drawKeys(
   ctx.restore()
 }
 
-export const PianoKeys: FC = () => {
+const Wrapper = styled.div``
+
+const DrumKeysContainer = styled.div`
+  border-right: 1px solid var(--color-divider);
+  pointer-events: none;
+`
+
+const DrumKeyLabelBody = styled.div`
+  position: absolute;
+  left: 0;
+  width: ${Layout.drumKeysWidth}px;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  border-bottom: 1px solid rgb(from var(--color-divider) r g b / 40%);
+  padding-left: 0.25rem;
+
+  &:last-child {
+    border-top: 1px solid var(--color-divider);
+  }
+
+  &[data-highlighted="true"] {
+    border-bottom: 1px solid var(--color-divider);
+  }
+`
+
+const DrumKeyLabel: FC<{
+  noteNumber: number
+  name: string
+}> = ({ noteNumber, name }) => {
+  const { transform } = useKeyScroll()
+  const style = useMemo(
+    () => ({
+      top: transform.getY(noteNumber),
+      height: transform.pixelsPerKey,
+    }),
+    [noteNumber, transform],
+  )
+
+  return (
+    <DrumKeyLabelBody
+      style={style}
+      data-highlighted={noteNumber % 12 === 0 ? true : false}
+    >
+      {name}
+    </DrumKeyLabelBody>
+  )
+}
+
+const DrumKeys: FC<{ width: number; keyNames: Map<number, string> }> = ({
+  width,
+  keyNames,
+}) => {
+  const drumKeyNames = Array.from(keyNames.entries())
+  const style = useMemo(() => ({ width: width - 1 }), [width])
+
+  return (
+    <DrumKeysContainer style={style}>
+      {drumKeyNames.map(([noteNumber, name]) => (
+        <DrumKeyLabel key={noteNumber} noteNumber={noteNumber} name={name} />
+      ))}
+    </DrumKeysContainer>
+  )
+}
+
+const PianoKeysCanvas: FC<{ style: React.CSSProperties }> = ({ style }) => {
   const theme = useTheme()
-  const {
-    keySignature,
-    transform: { numberOfKeys, pixelsPerKey: keyHeight },
-    previewingNoteNumbers,
-  } = usePianoRoll()
-  const width = Layout.keyWidth
   const blackKeyWidth = Layout.keyWidth * Layout.blackKeyWidthRatio
-  const [touchingKeys, setTouchingKeys] = useState<Set<number>>(new Set())
-  const { onContextMenu, menuProps } = useContextMenu()
-  const { previewNoteOn, previewNoteOff } = usePreviewNote()
-  const selectedKeys = new Set([...touchingKeys, ...previewingNoteNumbers])
+  const { keySignature, keyHeight, numberOfKeys, selectedKeys } = usePianoKeys()
 
   const draw = useCallback(
     (ctx: CanvasRenderingContext2D) => {
@@ -224,7 +285,7 @@ export const PianoKeys: FC = () => {
       drawKeys(
         ctx,
         blackKeyWidth,
-        width,
+        Layout.keyWidth,
         keyHeight,
         numberOfKeys,
         theme,
@@ -235,11 +296,41 @@ export const PianoKeys: FC = () => {
     [numberOfKeys, theme, selectedKeys, keySignature, keyHeight, blackKeyWidth],
   )
 
+  return (
+    <DrawCanvas
+      draw={draw}
+      width={Layout.keyWidth}
+      height={keyHeight * numberOfKeys}
+      style={style}
+    />
+  )
+}
+
+export interface PianoKeysProps {
+  width: number
+}
+
+export const PianoKeys: FC<PianoKeysProps> = ({ width }) => {
+  const blackKeyWidth = Layout.keyWidth * Layout.blackKeyWidthRatio
+  const { onContextMenu, menuProps } = useContextMenu()
+  const {
+    keyHeight,
+    numberOfKeys,
+    keyNames,
+    onMouseDownKey,
+    onMouseMoveKey,
+    onMouseUpKey,
+  } = usePianoKeys()
+
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (e.button !== 0) {
         return
       }
+
+      const blackKeyArea = keyNames
+        ? Layout.drumKeysWidth + blackKeyWidth
+        : blackKeyWidth
 
       function posToNoteNumber(x: number, y: number): number {
         const noteNumberFloat = numberOfKeys - y / keyHeight
@@ -248,7 +339,7 @@ export const PianoKeys: FC = () => {
 
         // If you are on the white tab below a black key, round to the nearest
         // white note.
-        if (x > blackKeyWidth && isBlack) {
+        if (x > blackKeyArea && isBlack) {
           const touchingNextWhite =
             Math.round(noteNumberFloat) - Math.floor(noteNumberFloat)
           return touchingNextWhite ? noteNumber + 1 : noteNumber - 1
@@ -262,39 +353,60 @@ export const PianoKeys: FC = () => {
       }
 
       let prevNoteNumber = posToNoteNumber(startPosition.x, startPosition.y)
-      previewNoteOn(prevNoteNumber)
-
-      setTouchingKeys(new Set([prevNoteNumber]))
+      onMouseDownKey(prevNoteNumber)
 
       observeDrag2(e.nativeEvent, {
         onMouseMove(_e, delta) {
           const pos = Point.add(startPosition, delta)
           const noteNumber = posToNoteNumber(pos.x, pos.y)
           if (noteNumber !== prevNoteNumber) {
-            previewNoteOff()
-            previewNoteOn(noteNumber)
+            onMouseMoveKey(noteNumber)
             prevNoteNumber = noteNumber
-            setTouchingKeys(new Set([noteNumber]))
           }
         },
         onMouseUp() {
-          previewNoteOff()
-          setTouchingKeys(new Set())
+          onMouseUpKey()
         },
       })
     },
-    [numberOfKeys, keyHeight, previewNoteOn, previewNoteOff, blackKeyWidth],
+    [
+      numberOfKeys,
+      keyHeight,
+      blackKeyWidth,
+      onMouseDownKey,
+      onMouseMoveKey,
+      onMouseUpKey,
+      keyNames,
+    ],
+  )
+
+  const style: React.CSSProperties = useMemo(
+    () => ({ width, height: keyHeight * numberOfKeys }),
+    [width, keyHeight, numberOfKeys],
+  )
+
+  const canvasStyle: React.CSSProperties = useMemo(
+    () => ({
+      position: "absolute",
+      top: 0,
+      left: keyNames ? Layout.drumKeysWidth : 0,
+      pointerEvents: "none",
+    }),
+    [keyNames],
   )
 
   return (
     <>
-      <DrawCanvas
-        draw={draw}
-        width={width}
-        height={keyHeight * numberOfKeys}
+      <Wrapper
         onMouseDown={onMouseDown}
         onContextMenu={onContextMenu}
-      />
+        style={style}
+      >
+        {keyNames && (
+          <DrumKeys width={Layout.drumKeysWidth} keyNames={keyNames} />
+        )}
+        <PianoKeysCanvas style={canvasStyle} />
+      </Wrapper>
       <PianoKeysContextMenu {...menuProps} />
     </>
   )

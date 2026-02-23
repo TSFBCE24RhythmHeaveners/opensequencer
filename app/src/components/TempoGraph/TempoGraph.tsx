@@ -1,4 +1,3 @@
-import { useTheme } from "@emotion/react"
 import styled from "@emotion/styled"
 import useComponentSize from "@rehooks/component-size"
 import { FC, useCallback, useEffect, useRef } from "react"
@@ -15,6 +14,24 @@ const Wrapper = styled.div`
   flex-grow: 1;
   background: var(--color-background);
   color: var(--color-text-secondary);
+`
+
+const AXIS_WIDTH = 64
+
+const StyledRuler = styled(CanvasPianoRuler)`
+  position: absolute;
+  left: ${AXIS_WIDTH}px;
+  top: 0;
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-divider);
+  box-sizing: border-box;
+`
+
+const StyledGraphCanvas = styled(TempoGraphCanvas)`
+  position: absolute;
+  top: ${Layout.rulerHeight}px;
+  left: ${AXIS_WIDTH}px;
+  background-color: var(--color-editor-background);
 `
 
 export const TempoGraph: FC = () => {
@@ -37,7 +54,6 @@ export const TempoGraph: FC = () => {
     },
     [setScrollLeftInPixels, setAutoScroll],
   )
-  const theme = useTheme()
 
   const scrollLeft = Math.floor(_scrollLeft)
 
@@ -49,31 +65,14 @@ export const TempoGraph: FC = () => {
   useEffect(() => {
     setCanvasWidth(containerWidth)
     setCanvasHeight(contentHeight)
-  }, [containerWidth, contentHeight])
+  }, [containerWidth, contentHeight, setCanvasWidth, setCanvasHeight])
 
   return (
     <Wrapper ref={ref}>
-      <CanvasPianoRuler
-        style={{
-          background: theme.backgroundColor,
-          borderBottom: `1px solid ${theme.dividerColor}`,
-          boxSizing: "border-box",
-          position: "absolute",
-          left: Layout.keyWidth,
-        }}
-      />
-      <TempoGraphCanvas
-        width={containerWidth}
-        height={contentHeight}
-        style={{
-          position: "absolute",
-          top: Layout.rulerHeight,
-          left: Layout.keyWidth,
-          backgroundColor: theme.editorBackgroundColor,
-        }}
-      />
+      <StyledRuler />
+      <StyledGraphCanvas width={containerWidth} height={contentHeight} />
       <TempoGraphAxis
-        width={Layout.keyWidth}
+        width={AXIS_WIDTH}
         offset={Layout.rulerHeight}
         transform={transform}
       />

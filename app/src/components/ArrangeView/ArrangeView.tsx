@@ -1,6 +1,7 @@
 import { useTheme } from "@emotion/react"
 import styled from "@emotion/styled"
 import useComponentSize from "@rehooks/component-size"
+import { TrackId } from "@signal-app/core"
 import { clamp } from "lodash"
 import { FC, useCallback, useEffect, useRef } from "react"
 import { Layout, WHEEL_SCROLL_RATE } from "../../Constants"
@@ -12,7 +13,6 @@ import { useRouter } from "../../hooks/useRouter"
 import { useSong } from "../../hooks/useSong"
 import { useTickScroll } from "../../hooks/useTickScroll"
 import { useTrackScroll } from "../../hooks/useTrackScroll"
-import { TrackId } from "../../track"
 import CanvasPianoRuler from "../PianoRoll/CanvasPianoRuler"
 import { TrackName } from "../TrackList/TrackName"
 import {
@@ -103,10 +103,13 @@ export const ArrangeView: FC = () => {
   const ref = useRef(null)
   const size = useComponentSize(ref)
 
-  const setScrollLeft = useCallback((v: number) => {
-    setScrollLeftInPixels(v)
-    setAutoScroll(false)
-  }, [])
+  const setScrollLeft = useCallback(
+    (v: number) => {
+      setScrollLeftInPixels(v)
+      setAutoScroll(false)
+    },
+    [setScrollLeftInPixels, setAutoScroll],
+  )
 
   const containerWidth = size.width
 
@@ -114,11 +117,11 @@ export const ArrangeView: FC = () => {
 
   useEffect(() => {
     setCanvasWidth(containerWidth)
-  }, [size.width])
+  }, [containerWidth, setCanvasWidth])
 
   useEffect(() => {
     setCanvasHeight(size.height)
-  }, [size.height])
+  }, [size.height, setCanvasHeight])
 
   const onClickScaleUpHorizontal = useCallback(
     () => scaleAroundPointX(0.2, 0),
@@ -169,7 +172,7 @@ export const ArrangeView: FC = () => {
         scrollBy(-e.deltaX, -deltaY)
       }
     },
-    [setScaleY, scaleY, scaleAroundPointX, scrollBy],
+    [setScaleY, scaleY, scaleAroundPointX, scrollBy, transform.pixelsPerKey],
   )
 
   const openTrack = (trackId: TrackId) => {

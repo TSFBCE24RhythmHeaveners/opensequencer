@@ -1,13 +1,18 @@
 import styled from "@emotion/styled"
 import useComponentSize from "@rehooks/component-size"
 import DotsHorizontalIcon from "mdi-react/DotsHorizontalIcon"
-import React, { FC, useRef } from "react"
-import { Layout } from "../../Constants"
+import React, { FC, useCallback, useRef } from "react"
+import {
+  ControlMode,
+  isEqualControlMode,
+} from "../../entities/control/ControlMode"
 import { useControlPane } from "../../hooks/useControlPane"
+import { useControlPaneKeyboardShortcut } from "../../hooks/useControlPaneKeyboardShortcut"
+import { usePianoRoll } from "../../hooks/usePianoRoll"
 import { useRootView } from "../../hooks/useRootView"
-import { ControlMode, isEqualControlMode } from "../../stores/ControlStore"
 import { ControlName } from "./ControlName"
 import { ValueEventGraph } from "./Graph/ValueEventGraph"
+import { PencilModeSelector } from "./PencilModeSelector"
 import PianoVelocityControl from "./VelocityControl/VelocityControl"
 
 interface TabBarProps {
@@ -34,7 +39,7 @@ const TabButtonBase = styled.div`
 `
 
 const TabButton = styled(TabButtonBase)`
-  width: 7rem;
+  min-width: 4rem;
   overflow: hidden;
   border-bottom: 1px solid;
   border-color: transparent;
@@ -55,7 +60,6 @@ const NoWrap = styled.span`
 const Toolbar = styled.div`
   box-sizing: border-box;
   display: flex;
-  margin-left: var(--size-key-width);
   height: 2rem;
   flex-shrink: 0;
   overflow-x: auto;
@@ -94,7 +98,8 @@ const Parent = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--color-background-dark);
+  background: var(--color-background);
+  outline: none;
 `
 
 const Content = styled.div`
@@ -109,17 +114,38 @@ const Content = styled.div`
   }
 `
 
-const TAB_HEIGHT = 30
+const TabBarWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: stretch;
+`
+
+const TabBarScrollArea = styled.div`
+  flex: 1;
+  overflow: hidden;
+`
+
+const TAB_HEIGHT = 32
 const BORDER_WIDTH = 1
 
-const ControlPane: FC = () => {
+export interface ControlPaneProps {
+  axisWidth: number
+}
+
+const ControlPane: FC<ControlPaneProps> = ({ axisWidth }) => {
   const ref = useRef(null)
   const containerSize = useComponentSize(ref)
+  const { setActivePane, mouseMode } = usePianoRoll()
   const { controlMode: mode, setControlMode } = useControlPane()
+  const keyboardShortcutProps = useControlPaneKeyboardShortcut()
+
+  const onFocus = useCallback(() => setActivePane("control"), [setActivePane])
+  const onBlur = useCallback(() => setActivePane(null), [setActivePane])
 
   const controlSize = {
-    width: containerSize.width - Layout.keyWidth - BORDER_WIDTH,
+    width: containerSize.width - axisWidth - BORDER_WIDTH,
     height: containerSize.height - TAB_HEIGHT,
+    axisWidth,
   }
 
   const control = (() => {
@@ -131,9 +157,23 @@ const ControlPane: FC = () => {
     }
   })()
 
+  const showPencilModeSelector =
+    mouseMode === "pencil" && mode.type !== "velocity"
+
   return (
-    <Parent ref={ref}>
-      <TabBar onSelect={setControlMode} selectedMode={mode} />
+    <Parent
+      ref={ref}
+      {...keyboardShortcutProps}
+      tabIndex={0}
+      onFocus={onFocus}
+      onBlur={onBlur}
+    >
+      <TabBarWrapper style={{ paddingLeft: axisWidth }}>
+        <TabBarScrollArea>
+          <TabBar onSelect={setControlMode} selectedMode={mode} />
+        </TabBarScrollArea>
+        {showPencilModeSelector && <PencilModeSelector />}
+      </TabBarWrapper>
       <Content>{control}</Content>
     </Parent>
   )

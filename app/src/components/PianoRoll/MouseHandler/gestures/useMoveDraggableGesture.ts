@@ -1,17 +1,19 @@
+import { Range } from "@signal-app/core"
 import { transaction } from "mobx"
 import { Point } from "../../../../entities/geometry/Point"
-import { Range } from "../../../../entities/geometry/Range"
 import { NotePoint } from "../../../../entities/transform/NotePoint"
 import { MouseGesture } from "../../../../gesture/MouseGesture"
 import { observeDrag2 } from "../../../../helpers/observeDrag"
 import { useHistory } from "../../../../hooks/useHistory"
 import { usePianoRoll } from "../../../../hooks/usePianoRoll"
-import { usePianoRollDraggable } from "../../../../hooks/usePianoRollDraggable"
 import {
   DraggableArea,
   PianoRollDraggable,
-} from "../../../../stores/PianoRollStore"
-import { MIN_LENGTH } from "../useSelectionGesture"
+  usePianoRollDraggable,
+} from "../../../../hooks/usePianoRollDraggable"
+import { useQuantizer } from "../../../../hooks/useQuantizer"
+
+const MIN_LENGTH = 10
 
 export interface MoveDraggableCallback {
   onChange?: (
@@ -41,7 +43,12 @@ const constraintToDraggableArea = (
 export const useMoveDraggableGesture = (): MouseGesture<
   [PianoRollDraggable, PianoRollDraggable[]?, MoveDraggableCallback?]
 > => {
-  const { isQuantizeEnabled, transform, quantizer, getLocal } = usePianoRoll()
+  const { transform, getLocal } = usePianoRoll()
+  const {
+    isQuantizeEnabled,
+    quantize: quantizeUnit,
+    quantizeRound,
+  } = useQuantizer()
   const { getDraggablePosition, getDraggableArea, updateDraggable } =
     usePianoRollDraggable()
 
@@ -68,7 +75,7 @@ export const useMoveDraggableGesture = (): MouseGesture<
       observeDrag2(e, {
         onMouseMove: (e2, d) => {
           const quantize = !e2.shiftKey && isQuantizeEnabled
-          const minLength = quantize ? quantizer.unit : MIN_LENGTH
+          const minLength = quantize ? quantizeUnit : MIN_LENGTH
 
           const draggableArea = getDraggableArea(draggable, minLength)
 
@@ -90,7 +97,7 @@ export const useMoveDraggableGesture = (): MouseGesture<
             )
             const position = quantize
               ? {
-                  tick: quantizer.round(notePoint.tick),
+                  tick: quantizeRound(notePoint.tick),
                   noteNumber: notePoint.noteNumber,
                 }
               : notePoint

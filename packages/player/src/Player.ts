@@ -49,7 +49,7 @@ export class Player {
     })
   }
 
-  play() {
+  play = () => {
     if (this.isPlaying) {
       console.warn("called play() while playing. aborted.")
       return
@@ -96,22 +96,22 @@ export class Player {
   }
 
   get numberOfChannels() {
-    return 0xf
+    return 16
   }
 
-  allSoundsOffChannel(ch: number) {
+  allSoundsOffChannel = (ch: number) => {
     this.sendEvent(
       controllerMidiEvent(0, ch, MIDIControlEvents.ALL_SOUNDS_OFF, 0),
     )
   }
 
-  allSoundsOff() {
+  allSoundsOff = () => {
     for (const ch of range(0, this.numberOfChannels)) {
       this.allSoundsOffChannel(ch)
     }
   }
 
-  allSoundsOffExclude(channel: number) {
+  allSoundsOffExclude = (channel: number) => {
     for (const ch of range(0, this.numberOfChannels)) {
       if (ch !== channel) {
         this.allSoundsOffChannel(ch)
@@ -134,7 +134,7 @@ export class Player {
     }
   }
 
-  stop() {
+  stop = () => {
     this.scheduler = null
     this.allSoundsOff()
     this._isPlaying = false
@@ -145,7 +145,7 @@ export class Player {
     }
   }
 
-  reset() {
+  reset = () => {
     this.resetControllers()
     this.stop()
     this._currentTick = 0
@@ -156,7 +156,7 @@ export class Player {
    collect all previous state events
    and send them to the synthesizer
   */
-  sendCurrentStateEvents() {
+  sendCurrentStateEvents = () => {
     this.eventSource.getCurrentStateEvents(this._currentTick).forEach((e) => {
       this.applyPlayerEvent(e)
       this.sendEvent(e)
@@ -172,12 +172,12 @@ export class Player {
   }
 
   // delayTime: seconds, timestampNow: milliseconds
-  sendEvent(
+  sendEvent = (
     event: SendableEvent,
     delayTime: number = 0,
     timestampNow: number = performance.now(),
     trackId?: number,
-  ) {
+  ) => {
     this.output.sendEvent(event, delayTime, timestampNow, trackId)
   }
 
@@ -208,8 +208,7 @@ export class Player {
 
     const timestamp = performance.now()
 
-    this.scheduler.loop =
-      this.loop !== null && this.loop.enabled ? this.loop : null
+    this.scheduler.loop = this.loop?.enabled ? this.loop : null
     const events = this.scheduler.readNextEvents(this._currentTempo, timestamp)
 
     events.forEach(({ event: e, timestamp: time }) => {
@@ -230,7 +229,7 @@ export class Player {
 
   // convenience methods
 
-  playOrPause() {
+  playOrPause = () => {
     if (this.isPlaying) {
       this.stop()
     } else {
@@ -238,7 +237,7 @@ export class Player {
     }
   }
 
-  setLoopBegin(tick: number) {
+  setLoopBegin = (tick: number) => {
     this.loop = {
       end: Math.max(tick, this.loop?.end ?? tick),
       enabled: this.loop?.enabled ?? false,
@@ -246,7 +245,7 @@ export class Player {
     }
   }
 
-  setLoopEnd(tick: number) {
+  setLoopEnd = (tick: number) => {
     this.loop = {
       begin: Math.min(tick, this.loop?.begin ?? tick),
       enabled: this.loop?.enabled ?? false,
@@ -254,7 +253,7 @@ export class Player {
     }
   }
 
-  toggleEnableLoop() {
+  toggleEnableLoop = () => {
     if (this.loop === null) {
       return
     }

@@ -1,81 +1,88 @@
-import { createContext, useCallback, useContext, useMemo } from "react"
-import { ControlSelection } from "../entities/selection/ControlSelection"
+import { atom, useAtomValue, useSetAtom } from "jotai"
+import { atomWithStorage } from "jotai/utils"
+import { focusAtom } from "jotai-optics"
+import { cloneDeep } from "lodash"
 import {
   ControlMode,
-  ControlStore,
-  SerializedControlStore,
-} from "../stores/ControlStore"
-import { useMobxSelector } from "./useMobxSelector"
-import { usePianoRoll } from "./usePianoRoll"
-
-const ControlStoreContext = createContext<ControlStore>(null!)
-
-export function ControlPaneProvider({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const controlStore = useMemo(() => new ControlStore(), [])
-
-  return (
-    <ControlStoreContext.Provider value={controlStore}>
-      {children}
-    </ControlStoreContext.Provider>
-  )
-}
+  defaultControlModes,
+} from "../entities/control/ControlMode"
+import { ControlSelection } from "../entities/selection/ControlSelection"
 
 export function useControlPane() {
-  const controlStore = useContext(ControlStoreContext)
-
   return {
-    get cursor() {
-      return usePianoRoll().controlCursor
-    },
-    get mouseMode() {
-      return usePianoRoll().mouseMode
-    },
     get controlMode() {
-      return useMobxSelector(() => controlStore.controlMode, [controlStore])
+      return useAtomValue(controlModeAtom)
     },
     get controlModes() {
-      return useMobxSelector(() => controlStore.controlModes, [controlStore])
+      return useAtomValue(controlModesAtom)
     },
     get selection() {
-      return useMobxSelector(() => controlStore.selection, [controlStore])
+      return useAtomValue(selectionAtom)
     },
     get selectedEventIds() {
-      return useMobxSelector(
-        () => controlStore.selectedEventIds,
-        [controlStore],
-      )
+      return useAtomValue(selectedEventIdsAtom)
     },
-    get transform() {
-      return usePianoRoll().transform
+    get controlPencilMode() {
+      return useAtomValue(controlPencilModeAtom)
     },
-    get quantizer() {
-      return usePianoRoll().quantizer
+    get controlCurveType() {
+      return useAtomValue(controlCurveTypeAtom)
     },
-    resetSelection: useCallback(() => {
-      controlStore.selection = null
-      controlStore.selectedEventIds = []
-    }, []),
-    setControlMode: useCallback((controlMode: ControlMode) => {
-      controlStore.controlMode = controlMode
-    }, []),
-    setControlModes: useCallback((controlModes: ControlMode[]) => {
-      controlStore.controlModes = controlModes
-    }, []),
-    setSelection: useCallback((selection: ControlSelection | null) => {
-      controlStore.selection = selection
-    }, []),
-    setSelectedEventIds: useCallback((selectedEventIds: number[]) => {
-      controlStore.selectedEventIds = selectedEventIds
-    }, []),
-    serializeState: useCallback(() => controlStore.serialize(), [controlStore]),
-    restoreState: useCallback(
-      (serializedState: SerializedControlStore) =>
-        controlStore.restore(serializedState),
-      [controlStore],
-    ),
+    resetSelection: useSetAtom(resetSelectionAtom),
+    setControlMode: useSetAtom(controlModeAtom),
+    setControlModes: useSetAtom(controlModesAtom),
+    setSelection: useSetAtom(selectionAtom),
+    setSelectedEventIds: useSetAtom(selectedEventIdsAtom),
+    setControlPencilMode: useSetAtom(controlPencilModeAtom),
+    setControlCurveType: useSetAtom(controlCurveTypeAtom),
+    serializeState: useSetAtom(serializeAtom),
+    restoreState: useSetAtom(restoreAtom),
   }
 }
+
+// atoms
+const controlModeAtom = atom<ControlMode>({ type: "velocity" })
+const controlPencilModeAtom = atom<"pencil" | "line" | "curve">("pencil")
+const controlCurveTypeAtom = atom<"linear" | "easeIn" | "easeOut">("easeIn")
+const selectionAtom = atom<ControlSelection | null>(null)
+const selectedEventIdsAtom = atom<number[]>([])
+const storageAtom = atomWithStorage<{ controlModes: ControlMode[] }>(
+  "ControlStore",
+  {
+    controlModes: defaultControlModes,
+  },
+)
+const controlModesAtom = focusAtom(storageAtom, (optic) =>
+  optic.prop("controlModes"),
+)
+
+// actions
+const resetSelectionAtom = atom(null, (_get, set) => {
+  set(selectionAtom, null)
+  set(selectedEventIdsAtom, [])
+})
+const serializeAtom = atom(null, (get) => ({
+  controlModes: cloneDeep(get(controlModesAtom)),
+  selection: cloneDeep(get(selectionAtom)),
+  selectedEventIds: cloneDeep(get(selectedEventIdsAtom)),
+}))
+const restoreAtom = atom(
+  null,
+  (
+    _get,
+    set,
+    {
+      controlModes,
+      selection,
+      selectedEventIds,
+    }: {
+      controlModes: ControlMode[]
+      selection: ControlSelection | null
+      selectedEventIds: number[]
+    },
+  ) => {
+    set(controlModesAtom, controlModes)
+    set(selectionAtom, selection)
+    set(selectedEventIdsAtom, selectedEventIds)
+  },
+)

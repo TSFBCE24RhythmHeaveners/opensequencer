@@ -1,9 +1,12 @@
 import styled from "@emotion/styled"
 import { SplitPaneProps } from "@ryohey/react-split-pane"
 import { FC, ReactNode } from "react"
-import { PianoRollScope, usePianoRoll } from "../../hooks/usePianoRoll"
+import { useAutoFocus } from "../../hooks/useAutoFocus"
+import { useEventList } from "../../hooks/useEventList"
+import { PianoRollScope } from "../../hooks/usePianoRoll"
+import { usePianoRollKeyboardShortcut } from "../../hooks/usePianoRollKeyboardShortcut"
+import { useTrackList } from "../../hooks/useTrackList"
 import EventList from "../EventEditor/EventList"
-import { PianoRollKeyboardShortcut } from "../KeyboardShortcut/PianoRollKeyboardShortcut"
 import { PianoRollToolbar } from "../PianoRollToolbar/PianoRollToolbar"
 import { TrackList } from "../TrackList/TrackList"
 import { PianoRollTransposeDialog } from "../TransposeDialog/PianoRollTransposeDialog"
@@ -15,6 +18,7 @@ const ColumnContainer = styled.div`
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  outline: none;
 `
 
 const PaneLayout: FC<SplitPaneProps & { isShow: boolean; pane: ReactNode }> = ({
@@ -35,7 +39,8 @@ const PaneLayout: FC<SplitPaneProps & { isShow: boolean; pane: ReactNode }> = ({
 }
 
 const PianoRollPanes: FC = () => {
-  const { showTrackList, showEventList } = usePianoRoll()
+  const { isOpen: showTrackList } = useTrackList()
+  const { isOpen: showEventList } = useEventList()
 
   return (
     <div style={{ display: "flex", flexGrow: 1, position: "relative" }}>
@@ -63,10 +68,12 @@ const PianoRollPanes: FC = () => {
 }
 
 export const PianoRollEditor: FC = () => {
+  const keyboardShortcutProps = usePianoRollKeyboardShortcut()
+  const ref = useAutoFocus<HTMLDivElement>()
+
   return (
     <PianoRollScope>
-      <ColumnContainer>
-        <PianoRollKeyboardShortcut />
+      <ColumnContainer {...keyboardShortcutProps} tabIndex={0} ref={ref}>
         <PianoRollToolbar />
         <PianoRollPanes />
       </ColumnContainer>

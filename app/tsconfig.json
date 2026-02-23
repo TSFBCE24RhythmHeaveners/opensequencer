@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
     "types": [
+      "react",
+      "react-dom",
       "node",
-      "jest",
-      "webpack-env",
       "webmidi",
       "wicg-file-system-access",
-      "web-bluetooth"
+      "web-bluetooth",
+      "vite-plugin-svgr/client"
     ],
-    "baseUrl": "./src",
     "sourceMap": true,
     "target": "esnext",
     "module": "es2015",
@@ -24,6 +24,8 @@
     "useDefineForClassFields": true,
     "resolveJsonModule": true,
     "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
     "paths": {
       // Avoid referencing the node_modules of the library when developing a local library.
       "@types/react": ["../node_modules/@types/react"]

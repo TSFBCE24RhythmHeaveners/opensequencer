@@ -1,58 +1,51 @@
-import { useTheme } from "@emotion/react"
 import styled from "@emotion/styled"
 import { FC } from "react"
 import { Layout } from "../../Constants"
 import { useKeyScroll } from "../../hooks/useKeyScroll"
+import { Positioned } from "../ui/Positioned"
 import CanvasPianoRuler from "./CanvasPianoRuler"
+import { InstrumentLane } from "./InstrumentLane"
 import { PianoKeys } from "./PianoKeys"
 import { PianoRollCanvas } from "./PianoRollCanvas/PianoRollCanvas"
 
 export interface PianoRollStageProps {
   width: number
   height: number
+  keyWidth: number
 }
 
 const Container = styled.div``
 
-const ContentPosition = styled.div`
-  position: absolute;
-  left: var(--size-key-width);
-`
-
-const RulerPosition = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  padding-left: var(--size-key-width);
+const RulerPosition = styled(Positioned)`
   height: var(--size-ruler-height);
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-divider);
 `
 
-const PianoKeyPosition = styled.div`
-  position: absolute;
-  left: 0;
-  top: 0;
-`
+const LeftTopSpace = styled(RulerPosition)``
 
-export const PianoRollStage: FC<PianoRollStageProps> = ({ width, height }) => {
+export const PianoRollStage: FC<PianoRollStageProps> = ({
+  width,
+  height,
+  keyWidth,
+}) => {
   const { scrollTop } = useKeyScroll()
-  const theme = useTheme()
 
   return (
     <Container>
-      <ContentPosition style={{ top: Layout.rulerHeight }}>
+      <Positioned top={Layout.rulerHeight} left={keyWidth}>
         <PianoRollCanvas width={width} height={height - Layout.rulerHeight} />
-      </ContentPosition>
-      <PianoKeyPosition style={{ top: -scrollTop + Layout.rulerHeight }}>
-        <PianoKeys />
-      </PianoKeyPosition>
-      <RulerPosition
-        style={{
-          background: theme.backgroundColor,
-          borderBottom: `1px solid ${theme.dividerColor}`,
-        }}
-      >
+      </Positioned>
+      <Positioned top={-scrollTop + Layout.rulerHeight}>
+        <PianoKeys width={keyWidth} />
+      </Positioned>
+      <LeftTopSpace width={keyWidth} />
+      <RulerPosition left={keyWidth}>
         <CanvasPianoRuler />
       </RulerPosition>
+      <Positioned top={Layout.rulerHeight} left={keyWidth}>
+        <InstrumentLane width={width} />
+      </Positioned>
     </Container>
   )
 }

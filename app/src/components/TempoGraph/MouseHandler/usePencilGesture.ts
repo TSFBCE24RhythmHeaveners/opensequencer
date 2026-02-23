@@ -1,25 +1,26 @@
+import {
+  bpmToUSecPerBeat,
+  isSetTempoEvent,
+  setTempoMidiEvent,
+} from "@signal-app/core"
 import { useUpdateEventsInRange } from "../../../actions"
 import { Point } from "../../../entities/geometry/Point"
 import { TempoCoordTransform } from "../../../entities/transform/TempoCoordTransform"
 import { MouseGesture } from "../../../gesture/MouseGesture"
-import { bpmToUSecPerBeat } from "../../../helpers/bpm"
 import { getClientPos } from "../../../helpers/mouseEvent"
 import { observeDrag } from "../../../helpers/observeDrag"
 import { useConductorTrack } from "../../../hooks/useConductorTrack"
 import { useHistory } from "../../../hooks/useHistory"
-import { useTempoEditor } from "../../../hooks/useTempoEditor"
-import { setTempoMidiEvent } from "../../../midi/MidiEvent"
-import { isSetTempoEvent } from "../../../track"
+import { useQuantizer } from "../../../hooks/useQuantizer"
 
 export const usePencilGesture = (): MouseGesture<
   [Point, TempoCoordTransform]
 > => {
   const { pushHistory } = useHistory()
-  const { quantizer } = useTempoEditor()
+  const { quantizeRound } = useQuantizer()
   const { id: conductorTrackId, createOrUpdate } = useConductorTrack()
   const updateEventsInRange = useUpdateEventsInRange(
     conductorTrackId,
-    quantizer,
     isSetTempoEvent,
     (v) => setTempoMidiEvent(0, bpmToUSecPerBeat(v)),
   )
@@ -34,7 +35,7 @@ export const usePencilGesture = (): MouseGesture<
 
       const event = {
         ...setTempoMidiEvent(0, Math.round(bpm)),
-        tick: quantizer.round(pos.tick),
+        tick: quantizeRound(pos.tick),
       }
       createOrUpdate(event)
 

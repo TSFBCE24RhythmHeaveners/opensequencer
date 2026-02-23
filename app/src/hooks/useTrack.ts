@@ -1,9 +1,10 @@
+import { Track, TrackColor, TrackEvent, TrackId } from "@signal-app/core"
 import { useCallback } from "react"
-import Track, { TrackId } from "../track"
-import { TrackColor } from "../track/TrackColor"
-import { TrackEvent } from "../track/TrackEvent"
-import { useMobxSelector } from "./useMobxSelector"
+import { TrackMute } from "../trackMute/TrackMute"
+import { useMobxGetter, useMobxSelector } from "./useMobxSelector"
+import { usePlayer } from "./usePlayer"
 import { useSong } from "./useSong"
+import { useTrackMute } from "./useTrackMute"
 
 export function useTrack(id: TrackId) {
   const song = useSong()
@@ -11,28 +12,42 @@ export function useTrack(id: TrackId) {
 
   return {
     get isRhythmTrack() {
-      return useMobxSelector(() => track?.isRhythmTrack ?? false, [track])
+      return useMobxGetter(track, "isRhythmTrack") ?? false
     },
     get isConductorTrack() {
-      return useMobxSelector(() => track?.isConductorTrack ?? false, [track])
+      return useMobxGetter(track, "isConductorTrack") ?? false
     },
     get programNumber() {
-      return useMobxSelector(() => track?.programNumber ?? 0, [track])
+      const { position } = usePlayer()
+      return useMobxSelector(
+        () => track?.getProgramNumber(position) ?? 0,
+        [track, position],
+      )
     },
     get name() {
-      return useMobxSelector(() => track?.name ?? "", [track])
+      return useMobxGetter(track, "name") ?? ""
     },
     get channel() {
-      return useMobxSelector(() => track?.channel, [track])
+      return useMobxGetter(track, "channel")
     },
     get events() {
-      return useMobxSelector(() => track?.events ?? [], [track])
+      return useMobxGetter(track, "events") ?? []
     },
     getEvents() {
       return track?.events ?? []
     },
     get color() {
-      return useMobxSelector(() => track?.color, [track])
+      return useMobxGetter(track, "color")
+    },
+    get isMuted() {
+      const { trackMute } = useTrackMute()
+      const isMuted = TrackMute.isMuted(id)(trackMute)
+      return isMuted
+    },
+    get isSolo() {
+      const { trackMute } = useTrackMute()
+      const isSolo = TrackMute.isSolo(id)(trackMute)
+      return isSolo
     },
     setColor: useCallback(
       (color: TrackColor | null) => {
@@ -63,12 +78,6 @@ export function useTrack(id: TrackId) {
     setVolume: useCallback(
       (volume: number, tick: number) => {
         track?.setVolume(volume, tick)
-      },
-      [track],
-    ),
-    setProgramNumber: useCallback(
-      (programNumber: number) => {
-        track?.setProgramNumber(programNumber)
       },
       [track],
     ),
@@ -109,14 +118,6 @@ export function useTrackEvents(track: Track | undefined) {
       (eventIds: number[]) => {
         if (track) {
           track.removeEvents(eventIds)
-        }
-      },
-      [track],
-    ),
-    removeRedundantEvents: useCallback(
-      (event: TrackEvent) => {
-        if (track) {
-          track.removeRedundantEvents(event)
         }
       },
       [track],

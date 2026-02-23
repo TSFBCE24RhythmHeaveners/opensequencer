@@ -1,13 +1,13 @@
+import {
+  ControlEventsClipboardDataSchema,
+  PianoNotesClipboardDataSchema,
+} from "@signal-app/core"
 import { useCopySelection, useDeleteSelection, usePasteSelection } from "."
 import {
   useCopyControlSelection,
   useDeleteControlSelection,
   usePasteControlSelection,
 } from "../actions/control"
-import {
-  ControlEventsClipboardDataSchema,
-  PianoNotesClipboardDataSchema,
-} from "../clipboard/clipboardTypes"
 import { useControlPane } from "../hooks/useControlPane"
 import { usePianoRoll } from "../hooks/usePianoRoll"
 import { useRouter } from "../hooks/useRouter"
@@ -102,9 +102,9 @@ export const usePasteSelectionGlobal = () => {
           return
         }
         if (PianoNotesClipboardDataSchema.safeParse(obj).success) {
-          pasteSelection(obj)
+          pasteSelection()
         } else if (ControlEventsClipboardDataSchema.safeParse(obj).success) {
-          pasteControlSelection(obj)
+          pasteControlSelection()
         }
         break
       }

@@ -2,25 +2,31 @@ import { useTheme } from "@emotion/react"
 import { GLCanvas, Transform } from "@ryohey/webgl-react"
 import { FC, MouseEventHandler, useCallback, useEffect, useMemo } from "react"
 import { matrixFromTranslation } from "../../../helpers/matrix"
+import { useBeats } from "../../../hooks/useBeats"
 import { useContextMenu } from "../../../hooks/useContextMenu"
 import { useKeyScroll } from "../../../hooks/useKeyScroll"
 import { usePianoRoll } from "../../../hooks/usePianoRoll"
-import { useRuler } from "../../../hooks/useRuler"
 import { useTickScroll } from "../../../hooks/useTickScroll"
 import { Beats } from "../../GLNodes/Beats"
 import { Cursor } from "../../GLNodes/Cursor"
-import { Selection } from "../../GLNodes/Selection"
 import { useNoteMouseGesture } from "../MouseHandler/useNoteMouseGesture"
-import { PianoRollStageProps } from "../PianoRollStage"
 import { PianoSelectionContextMenu } from "../PianoSelectionContextMenu"
 import { GhostNotes } from "./GhostNotes"
 import { Lines } from "./Lines"
 import { Notes } from "./Notes"
+import { NoteSelection } from "./NoteSelection"
 
-export const PianoRollCanvas: FC<PianoRollStageProps> = ({ width, height }) => {
-  const { notesCursor, selectionBounds, ghostTrackIds, mouseMode } =
-    usePianoRoll()
-  const { beats } = useRuler()
+export interface PianoRollCanvasProps {
+  width: number
+  height: number
+}
+
+export const PianoRollCanvas: FC<PianoRollCanvasProps> = ({
+  width,
+  height,
+}) => {
+  const { ghostTrackIds, mouseMode } = usePianoRoll()
+  const beats = useBeats()
   const { cursorX, setCanvasWidth, scrollLeft } = useTickScroll()
   const { scrollTop, setCanvasHeight } = useKeyScroll()
 
@@ -48,11 +54,11 @@ export const PianoRollCanvas: FC<PianoRollStageProps> = ({ width, height }) => {
 
   useEffect(() => {
     setCanvasWidth(width)
-  }, [width])
+  }, [width, setCanvasWidth])
 
   useEffect(() => {
     setCanvasHeight(height)
-  }, [height])
+  }, [height, setCanvasHeight])
 
   const scrollXMatrix = useMemo(
     () => matrixFromTranslation(-scrollLeft, 0),
@@ -61,7 +67,7 @@ export const PianoRollCanvas: FC<PianoRollStageProps> = ({ width, height }) => {
 
   const scrollYMatrix = useMemo(
     () => matrixFromTranslation(0, -scrollTop),
-    [scrollLeft, scrollTop],
+    [scrollTop],
   )
 
   const scrollXYMatrix = useMemo(
@@ -69,15 +75,20 @@ export const PianoRollCanvas: FC<PianoRollStageProps> = ({ width, height }) => {
     [scrollLeft, scrollTop],
   )
 
+  const style = useMemo(
+    () => ({
+      backgroundColor: theme.editorBackgroundColor,
+    }),
+    [theme],
+  )
+
   return (
     <>
       <GLCanvas
         width={width}
         height={height}
-        style={{
-          cursor: notesCursor,
-          background: theme.pianoWhiteKeyLaneColor,
-        }}
+        cursor={mouseMode === "pencil" ? "auto" : "crosshair"}
+        style={style}
         onContextMenu={handleContextMenu}
         onMouseDown={mouseHandler.onMouseDown}
         onMouseMove={mouseHandler.onMouseMove}
@@ -95,7 +106,7 @@ export const PianoRollCanvas: FC<PianoRollStageProps> = ({ width, height }) => {
             <GhostNotes key={trackId} trackId={trackId} zIndex={2} />
           ))}
           <Notes zIndex={3} />
-          <Selection rect={selectionBounds} zIndex={4} />
+          <NoteSelection zIndex={4} />
         </Transform>
       </GLCanvas>
       <PianoSelectionContextMenu {...menuProps} />

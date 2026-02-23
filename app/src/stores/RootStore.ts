@@ -1,28 +1,17 @@
-import { Player, SoundFontSynth } from "@signal-app/player"
+import { Player, SoundFont, SoundFontSynth } from "@signal-app/player"
+import { CommandService } from "@signal-app/core"
 import { isRunningInElectron } from "../helpers/platform"
 import { EventSource } from "../player/EventSource"
+import { AutoSaveService } from "../services/AutoSaveService"
 import { GroupOutput } from "../services/GroupOutput"
 import { MIDIInput } from "../services/MIDIInput"
 import { MIDIMonitor } from "../services/MIDIMonitor"
 import { MIDIRecorder } from "../services/MIDIRecorder"
-import { SerializedArrangeViewStore } from "./ArrangeViewStore"
 import { BluetoothMIDIDeviceStore } from "./BluetoothMIDIDeviceStore"
-import { SerializedControlStore } from "./ControlStore"
 import { MIDIDeviceStore } from "./MIDIDeviceStore"
-import { SerializedPianoRollStore } from "./PianoRollStore"
 import { registerReactions } from "./reactions"
 import { SongStore } from "./SongStore"
 import { SoundFontStore } from "./SoundFontStore"
-
-// we use any for now. related: https://github.com/Microsoft/TypeScript/issues/1897
-type Json = any
-
-export interface SerializedRootStore {
-  song: Json
-  pianoRollStore: SerializedPianoRollStore
-  controlStore: SerializedControlStore
-  arrangeViewStore: SerializedArrangeViewStore
-}
 
 export default class RootStore {
   readonly songStore = new SongStore()
@@ -36,6 +25,8 @@ export default class RootStore {
   readonly midiMonitor: MIDIMonitor
   readonly soundFontStore: SoundFontStore
   readonly bluetoothMIDIDeviceStore: BluetoothMIDIDeviceStore
+  readonly autoSaveService: AutoSaveService
+  readonly commands = new CommandService(this.songStore)
 
   constructor() {
     const context = new (window.AudioContext || window.webkitAudioContext)()
@@ -49,15 +40,21 @@ export default class RootStore {
 
     this.soundFontStore = new SoundFontStore(this.synth)
 
-    this.midiRecorder = new MIDIRecorder(this.songStore, this.player)
-    this.midiMonitor = new MIDIMonitor(this.player)
     this.midiDeviceStore = new MIDIDeviceStore(this.midiInput)
     this.bluetoothMIDIDeviceStore = new BluetoothMIDIDeviceStore(this.midiInput)
+    this.midiRecorder = new MIDIRecorder(
+      this.songStore,
+      this.player,
+      this.midiDeviceStore,
+    )
+    this.midiMonitor = new MIDIMonitor(this.player, this.midiDeviceStore)
 
     this.midiInput.on("midiMessage", (e) => {
       this.midiMonitor.onMessage(e)
       this.midiRecorder.onMessage(e)
     })
+
+    this.autoSaveService = new AutoSaveService(this.songStore)
 
     registerReactions(this)
   }
@@ -66,11 +63,12 @@ export default class RootStore {
     await this.synth.setup()
     await this.soundFontStore.init()
     this.setupMetronomeSynth()
+    this.autoSaveService.startAutoSave()
   }
 
   private async setupMetronomeSynth() {
     const data = await loadMetronomeSoundFontData()
-    await this.metronomeSynth.loadSoundFont(data)
+    await this.metronomeSynth.loadSoundFont(await SoundFont.load(data))
   }
 }
 

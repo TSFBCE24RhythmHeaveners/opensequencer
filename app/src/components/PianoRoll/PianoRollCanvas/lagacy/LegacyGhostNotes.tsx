@@ -1,8 +1,8 @@
+import { TrackId } from "@signal-app/core"
 import { FC } from "react"
 import { useGhostNoteColor } from "../../../../hooks/useGhostNoteColor"
 import { useGhostNotes } from "../../../../hooks/useGhostNotes"
-import { PianoNoteItem } from "../../../../stores/PianoRollStore"
-import { TrackId } from "../../../../track"
+import { PianoNoteItem } from "../../../../hooks/useNotes"
 import { NoteCircles } from "./NoteCircles"
 import { NoteRectangles } from "./NoteRectangles"
 

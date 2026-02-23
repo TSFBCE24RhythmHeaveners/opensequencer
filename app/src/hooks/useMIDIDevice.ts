@@ -1,5 +1,5 @@
 import { useCallback } from "react"
-import { useMobxStore } from "./useMobxSelector"
+import { useMobxGetter } from "./useMobxSelector"
 import { useStores } from "./useStores"
 
 export interface Device {
@@ -13,24 +13,20 @@ export interface Device {
 export function useMIDIDevice() {
   const { midiDeviceStore, bluetoothMIDIDeviceStore } = useStores()
 
-  const inputs = useMobxStore(({ midiDeviceStore }) => midiDeviceStore.inputs)
-  const outputs = useMobxStore(({ midiDeviceStore }) => midiDeviceStore.outputs)
-  const btInputs = useMobxStore(
-    ({ bluetoothMIDIDeviceStore }) => bluetoothMIDIDeviceStore.inputs,
-  )
-  const btEnabledInputs = useMobxStore(
-    ({ bluetoothMIDIDeviceStore }) => bluetoothMIDIDeviceStore.enabledInputs,
-  )
-
-  const enabledInputs = useMobxStore(
-    ({ midiDeviceStore }) => midiDeviceStore.enabledInputs,
-  )
-  const enabledOutputs = useMobxStore(
-    ({ midiDeviceStore }) => midiDeviceStore.enabledOutputs,
+  const inputs = useMobxGetter(midiDeviceStore, "inputs")
+  const outputs = useMobxGetter(midiDeviceStore, "outputs")
+  const btInputs = useMobxGetter(bluetoothMIDIDeviceStore, "inputs")
+  const btEnabledInputs = useMobxGetter(
+    bluetoothMIDIDeviceStore,
+    "enabledInputs",
   )
 
-  const isFactorySoundEnabled = useMobxStore(
-    ({ midiDeviceStore }) => midiDeviceStore.isFactorySoundEnabled,
+  const enabledInputs = useMobxGetter(midiDeviceStore, "enabledInputs")
+  const enabledOutputs = useMobxGetter(midiDeviceStore, "enabledOutputs")
+
+  const isFactorySoundEnabled = useMobxGetter(
+    midiDeviceStore,
+    "isFactorySoundEnabled",
   )
 
   // 通常MIDI + Bluetooth MIDI
@@ -70,24 +66,20 @@ export function useMIDIDevice() {
     outputDevices,
     get isLoading() {
       return (
-        useMobxStore(({ midiDeviceStore }) => midiDeviceStore.isLoading) ||
-        useMobxStore(
-          ({ bluetoothMIDIDeviceStore }) => bluetoothMIDIDeviceStore.isLoading,
-        )
+        useMobxGetter(midiDeviceStore, "isLoading") ||
+        useMobxGetter(bluetoothMIDIDeviceStore, "isLoading")
       )
     },
     get requestError() {
       return (
-        useMobxStore(({ midiDeviceStore }) => midiDeviceStore.requestError) ||
-        useMobxStore(
-          ({ bluetoothMIDIDeviceStore }) =>
-            bluetoothMIDIDeviceStore.requestError,
-        )
+        useMobxGetter(midiDeviceStore, "requestError") ||
+        useMobxGetter(bluetoothMIDIDeviceStore, "requestError")
       )
     },
-    requestMIDIAccess: useCallback(() => {
-      midiDeviceStore.requestMIDIAccess()
-    }, [midiDeviceStore]),
+    get midiInputRouting() {
+      return useMobxGetter(midiDeviceStore, "midiInputRouting")
+    },
+    requestMIDIAccess: midiDeviceStore.requestMIDIAccess,
     requestBluetoothMIDIDevice: useCallback(() => {
       bluetoothMIDIDeviceStore.requestDevice()
     }, [bluetoothMIDIDeviceStore]),
@@ -101,6 +93,7 @@ export function useMIDIDevice() {
       },
       [midiDeviceStore, bluetoothMIDIDeviceStore, btInputs],
     ),
+    setMidiInputRouting: midiDeviceStore.setMidiInputRouting,
     setOutputEnable: useCallback(
       (deviceId: string, isEnabled: boolean) => {
         if (deviceId === factorySound.id) {
@@ -125,9 +118,8 @@ const factorySound = {
 }
 
 export const useCanRecord = () => {
-  const enabledInputs = useMobxStore(
-    ({ midiDeviceStore }) => midiDeviceStore.enabledInputs,
-  )
+  const { midiDeviceStore } = useStores()
+  const enabledInputs = useMobxGetter(midiDeviceStore, "enabledInputs")
 
   return Object.values(enabledInputs).filter((e) => e).length > 0
 }

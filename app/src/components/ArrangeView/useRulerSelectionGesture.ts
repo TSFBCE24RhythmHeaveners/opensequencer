@@ -1,21 +1,15 @@
+import { ArrangeSelection, Range } from "@signal-app/core"
 import { MouseEvent, useCallback } from "react"
-import { getEventsInSelection } from "../../actions/arrangeView"
-import { Range } from "../../entities/geometry/Range"
-import { ArrangeSelection } from "../../entities/selection/ArrangeSelection"
 import { MouseGesture } from "../../gesture/MouseGesture"
 import { observeDrag } from "../../helpers/observeDrag"
 import { useArrangeView } from "../../hooks/useArrangeView"
+import { useQuantizer } from "../../hooks/useQuantizer"
 import { useSong } from "../../hooks/useSong"
 import { useTickScroll } from "../../hooks/useTickScroll"
 
 export const useRulerSelectionGesture = (): MouseGesture<[], MouseEvent> => {
-  const {
-    trackTransform,
-    resetSelection,
-    quantizer,
-    setSelection,
-    setSelectedEventIds,
-  } = useArrangeView()
+  const { trackTransform, resetSelection, setSelection } = useArrangeView()
+  const { quantizeFloor, quantizeCeil } = useQuantizer()
   const { tracks } = useSong()
   const { transform, scrollLeft } = useTickScroll()
 
@@ -30,10 +24,10 @@ export const useRulerSelectionGesture = (): MouseGesture<[], MouseEvent> => {
           tick: range[1],
           trackIndex: tracks.length,
         },
-        quantizer,
+        { quantizeFloor, quantizeCeil },
         tracks.length,
       ),
-    [quantizer, tracks.length],
+    [quantizeFloor, quantizeCeil, tracks.length],
   )
 
   let selection: ArrangeSelection | null = null
@@ -55,13 +49,9 @@ export const useRulerSelectionGesture = (): MouseGesture<[], MouseEvent> => {
           const deltaPx = e.clientX - startClientX
           const selectionToPx = startPosX + deltaPx
           const endTick = transform.getTick(selectionToPx)
+          // eslint-disable-next-line react-hooks/exhaustive-deps
           selection = selectionFromTickRange([startTick, endTick])
           setSelection(selection)
-        },
-        onMouseUp: () => {
-          if (selection !== null) {
-            setSelectedEventIds(getEventsInSelection(tracks, selection))
-          }
         },
       })
     },
