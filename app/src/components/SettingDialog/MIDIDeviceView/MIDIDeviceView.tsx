@@ -90,6 +90,7 @@ export const MIDIDeviceView: FC = () => {
     isLoading,
     requestError,
     midiInputRouting,
+    isBluetoothSupported,
     setInputEnable,
     setOutputEnable,
     requestBluetoothMIDIDevice,
@@ -110,12 +111,14 @@ export const MIDIDeviceView: FC = () => {
           <>
             <SectionTitle>
               <Localized name="inputs" />
-              <IconButton
-                onClick={requestBluetoothMIDIDevice}
-                title="Connect Bluetooth MIDI Device"
-              >
-                <BluetoothIcon />
-              </IconButton>
+              {isBluetoothSupported && (
+                <IconButton
+                  onClick={requestBluetoothMIDIDevice}
+                  title="Connect Bluetooth MIDI Device"
+                >
+                  <BluetoothIcon />
+                </IconButton>
+              )}
             </SectionTitle>
             <DeviceList>
               {inputDevices.length === 0 && (

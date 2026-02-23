@@ -1,4 +1,5 @@
 import { useCallback } from "react"
+import { BLEMIDI } from "web-ble-midi"
 import { useMobxGetter } from "./useMobxSelector"
 import { useStores } from "./useStores"
 
@@ -79,6 +80,7 @@ export function useMIDIDevice() {
     get midiInputRouting() {
       return useMobxGetter(midiDeviceStore, "midiInputRouting")
     },
+    isBluetoothSupported: BLEMIDI.isSupported(),
     requestMIDIAccess: midiDeviceStore.requestMIDIAccess,
     requestBluetoothMIDIDevice: useCallback(() => {
       bluetoothMIDIDeviceStore.requestDevice()
