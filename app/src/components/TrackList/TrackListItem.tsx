@@ -276,7 +276,7 @@ export const TrackListItem: FC<TrackListItemProps> = ({ trackId }) => {
               <Layers />
             </ControlButton>
             {channel !== undefined && (
-              <ChannelName onClick={onClickChannel}>
+              <ChannelName onMouseDown={onClickChannel}>
                 CH {channel + 1}
               </ChannelName>
             )}

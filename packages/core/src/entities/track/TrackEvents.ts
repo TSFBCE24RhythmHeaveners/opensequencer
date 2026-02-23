@@ -1,9 +1,5 @@
 import { isEqual, omit } from "lodash"
-import {
-  ControllerEvent,
-  SetTempoEvent,
-  TrackNameEvent,
-} from "midifile-ts"
+import { ControllerEvent, SetTempoEvent, TrackNameEvent } from "midifile-ts"
 import { transaction } from "mobx"
 import { TickOrderedArray } from "../../data/OrdererdArray/TickOrderedArray"
 import { bpmToUSecPerBeat } from "../../helpers/bpm"

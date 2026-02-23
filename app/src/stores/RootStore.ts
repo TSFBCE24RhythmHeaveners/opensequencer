@@ -38,8 +38,12 @@ export default class RootStore {
 
     this.soundFontStore = new SoundFontStore(this.synth)
 
-    this.midiRecorder = new MIDIRecorder(this.songStore, this.player)
-    this.midiMonitor = new MIDIMonitor(this.player)
+    this.midiRecorder = new MIDIRecorder(
+      this.songStore,
+      this.player,
+      this.midiDeviceStore,
+    )
+    this.midiMonitor = new MIDIMonitor(this.player, this.midiDeviceStore)
 
     this.midiInput.on("midiMessage", (e) => {
       this.midiMonitor.onMessage(e)

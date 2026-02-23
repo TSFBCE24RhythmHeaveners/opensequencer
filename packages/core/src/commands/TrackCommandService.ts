@@ -273,12 +273,14 @@ export class TrackCommandService {
             )
           }
 
-    const events = track.events.filter(filterEvent).filter(
-      (e) =>
-        e.tick !== startTick &&
-        e.tick >= Math.min(minTick, _startTick) &&
-        e.tick <= Math.max(maxTick, _endTick),
-    )
+    const events = track.events
+      .filter(filterEvent)
+      .filter(
+        (e) =>
+          e.tick !== startTick &&
+          e.tick >= Math.min(minTick, _startTick) &&
+          e.tick <= Math.max(maxTick, _endTick),
+      )
 
     transaction(() => {
       track.removeEvents(events.map((e) => e.id))

@@ -52,8 +52,12 @@ export function useMIDIDevice() {
     get requestError() {
       return useMobxGetter(midiDeviceStore, "requestError")
     },
+    get midiInputRouting() {
+      return useMobxGetter(midiDeviceStore, "midiInputRouting")
+    },
     requestMIDIAccess: midiDeviceStore.requestMIDIAccess,
     setInputEnable: midiDeviceStore.setInputEnable,
+    setMidiInputRouting: midiDeviceStore.setMidiInputRouting,
     setOutputEnable: useCallback(
       (deviceId: string, isEnabled: boolean) => {
         if (deviceId === factorySound.id) {
