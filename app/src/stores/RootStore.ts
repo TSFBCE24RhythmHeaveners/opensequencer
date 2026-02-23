@@ -72,6 +72,7 @@ export default class RootStore {
     await this.soundFontStore.init()
     this.setupMetronomeSynth()
     this.autoSaveService.startAutoSave()
+    this.bluetoothMIDIDeviceStore.autoConnect()
   }
 
   private async setupMetronomeSynth() {

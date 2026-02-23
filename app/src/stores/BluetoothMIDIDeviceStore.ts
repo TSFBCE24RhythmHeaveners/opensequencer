@@ -3,12 +3,6 @@ import { makePersistable } from "mobx-persist-store"
 import { BLEMIDI, BLEMIDIDevice, MIDIMessageEvent } from "web-ble-midi"
 import { MIDIInput } from "../services/MIDIInput"
 
-export interface BluetoothMIDIDeviceInfo {
-  id: string
-  name: string
-  device: BluetoothDevice
-}
-
 export class BluetoothMIDIDeviceStore {
   inputs: BLEMIDIDevice[] = []
   requestError: Error | null = null
@@ -65,25 +59,51 @@ export class BluetoothMIDIDeviceStore {
     this.requestError = null
     try {
       const device = await BLEMIDI.scan()
-      if (!this.inputs.some((d) => d.id === device.id)) {
-        device.addEventListener("disconnect", () => {
-          this.inputs = this.inputs.filter((d) => d.id !== device.id)
-        })
-        device.addEventListener("midimessage", (event) => {
-          if (this.enabledInputs[device.id]) {
-            this.midiInput.onMidiMessage({
-              data: (event as MIDIMessageEvent).message.message.slice(0),
-              // timeStamp: message.timestampMs,
-            })
-          }
-        })
-        this.inputs.push(device)
-      }
+      this.registerDevice(device)
       await this.setInputEnable(device.id, true)
     } catch (e) {
       this.requestError = e as Error
     } finally {
       this.isLoading = false
     }
+  }
+
+  // 起動時に以前許可したデバイスへ自動再接続
+  async autoConnect() {
+    if (!navigator.bluetooth?.getDevices) {
+      return
+    }
+    let bluetoothDevices: BluetoothDevice[]
+    try {
+      bluetoothDevices = await navigator.bluetooth.getDevices()
+    } catch {
+      return
+    }
+    for (const bluetoothDevice of bluetoothDevices) {
+      const device = new BLEMIDIDevice(bluetoothDevice)
+      this.registerDevice(device)
+      if (this.enabledInputs[device.id]) {
+        device.connect().catch((e) => {
+          console.warn(`Auto-connect failed for ${device.name}:`, e)
+        })
+      }
+    }
+  }
+
+  private registerDevice(device: BLEMIDIDevice) {
+    if (this.inputs.some((d) => d.id === device.id)) {
+      return
+    }
+    device.addEventListener("disconnect", () => {
+      this.inputs = this.inputs.filter((d) => d.id !== device.id)
+    })
+    device.addEventListener("midimessage", (event) => {
+      if (this.enabledInputs[device.id]) {
+        this.midiInput.onMidiMessage({
+          data: (event as MIDIMessageEvent).message.message.slice(0),
+        })
+      }
+    })
+    this.inputs.push(device)
   }
 }
