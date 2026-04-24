@@ -51,7 +51,7 @@ const setupSynthIfNeeded = async (synth: SoundFontSynth) => {
   }
   await synth.setup()
   const soundFont = await SoundFont.loadFromURL(
-    "https://cdn.jsdelivr.net/gh/ryohey/signal@4569a31/public/A320U.sf2",
+    "https://cdn.jsdelivr.net/gh/TSFBCE24RhythmHeaveners/opensequencer@c71fd62/public/casio%20sk-200%20gm%20sf2.sf2",
   )
   await synth.loadSoundFont(soundFont)
 }
