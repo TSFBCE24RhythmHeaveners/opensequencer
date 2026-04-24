@@ -36,7 +36,7 @@ const defaultSoundFonts: (SoundFontItem & Metadata & { id: number })[] =
         {
           id: -999, // Use negative number to avoid conflict with user saved soundfonts
           type: "file",
-          path: "./assets/soundfonts/A320U.sf2",
+          path: "./assets/soundfonts/casio sk-200 gm sf2.sf2",
           name: "A320U.sf2 (Signal Factory Sound)",
         },
       ]
