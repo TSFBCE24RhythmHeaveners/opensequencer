@@ -84,7 +84,7 @@ export default class RootStore {
 async function loadMetronomeSoundFontData() {
   if (isRunningInElectron()) {
     return await window.electronAPI.readFile(
-      "./assets/soundfonts/A320U_drums.sf2",
+      "./assets/soundfonts/casio sk-200 gm sf2.sf2",
     )
   }
   const soundFontURL =
