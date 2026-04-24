@@ -33,10 +33,10 @@ export interface Theme {
 
 const darkTheme: Theme = {
   isLightContent: true,
-  font: "Inter, -apple-system, BlinkMacSystemFont, Avenir, Lato",
+  font: "Helvetica, Inter, -apple-system, BlinkMacSystemFont, Avenir, Lato",
   monoFont: "Roboto Mono, monospace",
   canvasFont: "Arial",
-  themeColor: "hsl(230, 70%, 55%)",
+  themeColor: "#2c5aa1",
   onSurfaceColor: "#ffffff",
   textColor: "#ffffff",
   secondaryTextColor: "hsl(223, 12%, 60%)",
@@ -66,7 +66,7 @@ const darkTheme: Theme = {
 
 const lightTheme: Theme = {
   isLightContent: false,
-  font: "Inter, -apple-system, BlinkMacSystemFont, Avenir, Lato",
+  font: "Helvetica, Inter, -apple-system, BlinkMacSystemFont, Avenir, Lato",
   monoFont: "Roboto Mono, monospace",
   canvasFont: "Arial",
   themeColor: "hsl(230, 70%, 55%)",
