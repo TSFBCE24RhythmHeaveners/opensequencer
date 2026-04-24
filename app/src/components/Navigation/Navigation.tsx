@@ -209,6 +209,17 @@ export const Navigation: FC = () => {
             <Forum style={IconStyle} />
             <TabTitle>
               <a
+                href="https://ilovedogs5335.vercel.app/utils.html"
+                target="_self"
+                rel="noreferrer"
+                Back to Utilities
+              </a>
+            </TabTitle>
+          </Tab>
+          <Tab>
+            <Forum style={IconStyle} />
+            <TabTitle>
+              <a
                 href="https://ilovedogs5335.vercel.app"
                 target="_self"
                 rel="noreferrer"
