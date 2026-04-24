@@ -210,7 +210,7 @@ export const Navigation: FC = () => {
             <TabTitle>
               <a
                 href="https://ilovedogs5335.vercel.app"
-                target="_blank"
+                target="_self"
                 rel="noreferrer"
                 Back
               </a>
