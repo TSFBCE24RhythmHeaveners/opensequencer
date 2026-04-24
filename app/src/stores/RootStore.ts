@@ -88,7 +88,7 @@ async function loadMetronomeSoundFontData() {
     )
   }
   const soundFontURL =
-    "https://cdn.jsdelivr.net/gh/ryohey/signal@6959f35/public/A320U_drums.sf2"
+    "https://cdn.jsdelivr.net/gh/TSFBCE24RhythmHeaveners/opensequencer@c71fd62/public/casio%20sk-200%20gm%20sf2.sf2"
   const response = await fetch(soundFontURL)
   const data = await response.arrayBuffer()
   return data
