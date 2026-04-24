@@ -205,7 +205,6 @@ export const Navigation: FC = () => {
               <Localized name="help" />
             </TabTitle>
           </Tab>
-
           <Tab>
             <Forum style={IconStyle} />
             <TabTitle>
@@ -213,14 +212,12 @@ export const Navigation: FC = () => {
                 href="https://ilovedogs5335.vercel.app"
                 target="_blank"
                 rel="noreferrer"
-              >
                 Back
               </a>
             </TabTitle>
           </Tab>
         </>
       )}
-
       <UserButton />
     </Container>
   )
