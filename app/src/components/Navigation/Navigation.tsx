@@ -210,11 +210,11 @@ export const Navigation: FC = () => {
             <Forum style={IconStyle} />
             <TabTitle>
               <a
-                href="https://discord.gg/XQxzNdDJse"
+                href="https://ilovedogs5335.vercel.app"
                 target="_blank"
                 rel="noreferrer"
               >
-                Discord
+                Back
               </a>
             </TabTitle>
           </Tab>
