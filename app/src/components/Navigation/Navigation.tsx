@@ -223,13 +223,12 @@ export const Navigation: FC = () => {
                 href="https://ilovedogs5335.vercel.app"
                 target="_self"
                 rel="noreferrer"
-                Back
+                Back to Main Page
               </a>
             </TabTitle>
           </Tab>
         </>
       )}
-      <UserButton />
     </Container>
   )
 }
