@@ -211,7 +211,7 @@ export const Navigation: FC = () => {
               <a
                 href="https://ilovedogs5335.vercel.app/utils.html"
                 target="_self"
-                
+                ref="noreferrer"
                 Back to Utilities
               </a>
             </TabTitle>
@@ -221,7 +221,7 @@ export const Navigation: FC = () => {
               <a
                 href="https://ilovedogs5335.vercel.app"
                 target="_self"
-                
+                ref="noreferrer"
                 Back to Main Page
               </a>
             </TabTitle>
