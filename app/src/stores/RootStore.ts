@@ -84,11 +84,11 @@ export default class RootStore {
 async function loadMetronomeSoundFontData() {
   if (isRunningInElectron()) {
     return await window.electronAPI.readFile(
-      "./assets/soundfonts/casio sk-200 gm sf2.sf2",
+      "./assets/soundfonts/GeneralSoundfontforOpenSequencer.sf2",
     )
   }
   const soundFontURL =
-    "https://cdn.jsdelivr.net/gh/TSFBCE24RhythmHeaveners/opensequencer@c71fd62/public/casio%20sk-200%20gm%20sf2.sf2"
+    "https://cdn.jsdelivr.net/gh/TSFBCE24RhythmHeaveners/opensequencer@443925b/public/GeneralSoundfontforOpenSequencer.sf2"
   const response = await fetch(soundFontURL)
   const data = await response.arrayBuffer()
   return data
