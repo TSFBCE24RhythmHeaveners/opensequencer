@@ -37,14 +37,14 @@ const defaultSoundFonts: (SoundFontItem & Metadata & { id: number })[] =
           id: -999, // Use negative number to avoid conflict with user saved soundfonts
           type: "file",
           path: "./assets/soundfonts/GeneralSoundfontforOpenSequencer.sf2",
-          name: "A320U.sf2 (Signal Factory Sound)",
+          name: "General Soundfont for OpenSequencer",
         },
       ]
     : [
         {
           id: -999, // Use negative number to avoid conflict with user saved soundfonts
           type: "remote",
-          name: "A320U.sf2 (Signal Factory Sound)",
+          name: "General Soundfont for OpenSequencer",
           url: "https://cdn.jsdelivr.net/gh/TSFBCE24RhythmHeaveners/opensequencer@443925b/public/GeneralSoundfontforOpenSequencer.sf2",
         },
       ]
